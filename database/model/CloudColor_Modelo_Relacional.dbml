@@ -1,0 +1,353 @@
+Table Rol {
+  RolID int [pk, increment]
+  Nombre varchar(50) [not null, unique]
+  Descripcion varchar(200)
+  Activo bit [not null]
+}
+
+Table Empleado {
+  EmpleadoID int [pk, increment]
+  CodigoEmpleado varchar(30) [not null, unique]
+  Nombres varchar(100) [not null]
+  Apellidos varchar(100) [not null]
+  Telefono varchar(30)
+  Correo varchar(150)
+  Activo bit [not null]
+}
+
+Table Usuario {
+  UsuarioID int [pk, increment]
+  EmpleadoID int [not null, unique]
+  RolID int [not null]
+  NombreUsuario varchar(50) [not null, unique]
+  PasswordHash varchar(255) [not null]
+  Activo bit [not null]
+}
+
+Table Bitacora {
+  BitacoraID bigint [pk, increment]
+  UsuarioID int [not null]
+  FechaHora datetime [not null]
+  Accion varchar(100) [not null]
+  TablaAfectada varchar(100) [not null]
+  RegistroID varchar(100)
+  DatosAnteriores varchar(max)
+  DatosNuevos varchar(max)
+}
+
+Table CategoriaProducto {
+  CategoriaProductoID int [pk, increment]
+  Nombre varchar(80) [not null, unique]
+  Descripcion varchar(200)
+  Activo bit [not null]
+}
+
+Table Marca {
+  MarcaID int [pk, increment]
+  Nombre varchar(100) [not null, unique]
+  Activo bit [not null]
+}
+
+Table Presentacion {
+  PresentacionID int [pk, increment]
+  Nombre varchar(80) [not null, unique]
+  UnidadMedida varchar(30) [not null]
+  Descripcion varchar(200)
+  Activo bit [not null]
+}
+
+Table Color {
+  ColorID int [pk, increment]
+  Nombre varchar(80) [not null, unique]
+  CodigoHex varchar(7)
+  Activo bit [not null]
+}
+
+Table Producto {
+  ProductoID int [pk, increment]
+  CategoriaProductoID int [not null]
+  MarcaID int [not null]
+  Nombre varchar(150) [not null]
+  Descripcion varchar(300)
+  ManejaLote bit [not null]
+  AplicaPEPS bit [not null]
+  Activo bit [not null]
+}
+
+Table ProductoVariante {
+  ProductoVarianteID int [pk, increment]
+  ProductoID int [not null]
+  PresentacionID int [not null]
+  ColorID int
+  CodigoSKU varchar(50) [not null, unique]
+  PrecioVentaActual decimal(18,2) [not null]
+  StockMinimo decimal(18,4) [not null]
+  Activo bit [not null]
+
+  indexes {
+    (ProductoID, PresentacionID, ColorID) [unique]
+  }
+}
+
+Table Cliente {
+  ClienteID int [pk, increment]
+  TipoCliente varchar(20) [not null]
+  NombreRazonSocial varchar(180) [not null]
+  NIT varchar(30)
+  Telefono varchar(30)
+  Correo varchar(150)
+  Direccion varchar(250)
+  Activo bit [not null]
+}
+
+Table Proveedor {
+  ProveedorID int [pk, increment]
+  Nombre varchar(180) [not null]
+  NIT varchar(30)
+  Telefono varchar(30)
+  Correo varchar(150)
+  Direccion varchar(250)
+  Activo bit [not null]
+}
+
+Table ProveedorProducto {
+  ProveedorProductoID int [pk, increment]
+  ProveedorID int [not null]
+  ProductoVarianteID int [not null]
+  Activo bit [not null]
+
+  indexes {
+    (ProveedorID, ProductoVarianteID) [unique]
+  }
+}
+
+Table Bodega {
+  BodegaID int [pk, increment]
+  Codigo varchar(30) [not null, unique]
+  Nombre varchar(100) [not null]
+  Direccion varchar(250)
+  Activo bit [not null]
+}
+
+Table Ubicacion {
+  UbicacionID int [pk, increment]
+  BodegaID int [not null]
+  Codigo varchar(30) [not null]
+  Descripcion varchar(200)
+  Activo bit [not null]
+
+  indexes {
+    (BodegaID, Codigo) [unique]
+  }
+}
+
+Table OrdenCompra {
+  OrdenCompraID int [pk, increment]
+  NumeroOrden varchar(30) [not null, unique]
+  ProveedorID int [not null]
+  UsuarioID int [not null]
+  Fecha datetime [not null]
+  Estado varchar(30) [not null]
+  Observaciones varchar(300)
+}
+
+Table DetalleOrdenCompra {
+  DetalleOrdenCompraID int [pk, increment]
+  OrdenCompraID int [not null]
+  ProductoVarianteID int [not null]
+  CantidadSolicitada decimal(18,4) [not null]
+  CostoUnitarioOrden decimal(18,2) [not null]
+}
+
+Table RecepcionCompra {
+  RecepcionCompraID int [pk, increment]
+  NumeroRecepcion varchar(30) [not null, unique]
+  OrdenCompraID int [not null]
+  UsuarioID int [not null]
+  FechaRecepcion datetime [not null]
+  Observaciones varchar(300)
+}
+
+Table DetalleRecepcionCompra {
+  DetalleRecepcionCompraID int [pk, increment]
+  RecepcionCompraID int [not null]
+  DetalleOrdenCompraID int [not null]
+  CantidadRecibida decimal(18,4) [not null]
+
+  indexes {
+    (RecepcionCompraID, DetalleOrdenCompraID) [unique]
+  }
+}
+
+Table LoteInventario {
+  LoteInventarioID int [pk, increment]
+  DetalleRecepcionCompraID int [not null]
+  UbicacionID int [not null]
+  NumeroLoteProveedor varchar(60)
+  FechaIngreso datetime [not null]
+  FechaVencimiento date
+  CantidadInicial decimal(18,4) [not null]
+  CantidadDisponible decimal(18,4) [not null]
+  CostoUnitario decimal(18,2) [not null]
+}
+
+Table MovimientoInventario {
+  MovimientoInventarioID bigint [pk, increment]
+  LoteInventarioID int [not null]
+  UsuarioID int [not null]
+  FechaHora datetime [not null]
+  TipoMovimiento varchar(40) [not null]
+  Cantidad decimal(18,4) [not null]
+  Referencia varchar(100)
+  Observaciones varchar(300)
+}
+
+Table Cotizacion {
+  CotizacionID int [pk, increment]
+  NumeroCotizacion varchar(30) [not null, unique]
+  ClienteID int [not null]
+  UsuarioID int [not null]
+  Fecha datetime [not null]
+  FechaVencimiento date
+  Estado varchar(30) [not null]
+  Observaciones varchar(300)
+}
+
+Table DetalleCotizacion {
+  DetalleCotizacionID int [pk, increment]
+  CotizacionID int [not null]
+  ProductoVarianteID int [not null]
+  Cantidad decimal(18,4) [not null]
+  PrecioUnitario decimal(18,2) [not null]
+}
+
+Table Factura {
+  FacturaID int [pk, increment]
+  NumeroFactura varchar(30) [not null, unique]
+  ClienteID int [not null]
+  CotizacionID int
+  UsuarioEmisorID int [not null]
+  Fecha datetime [not null]
+  Estado varchar(30) [not null]
+  TotalOriginal decimal(18,2) [not null]
+  TotalActual decimal(18,2) [not null]
+}
+
+Table DetalleFactura {
+  DetalleFacturaID int [pk, increment]
+  FacturaID int [not null]
+  ProductoVarianteID int [not null]
+  Cantidad decimal(18,4) [not null]
+  PrecioUnitario decimal(18,2) [not null]
+}
+
+Table DetalleFacturaLote {
+  DetalleFacturaLoteID int [pk, increment]
+  DetalleFacturaID int [not null]
+  LoteInventarioID int [not null]
+  CantidadSalida decimal(18,4) [not null]
+
+  indexes {
+    (DetalleFacturaID, LoteInventarioID) [unique]
+  }
+}
+
+Table MedioPago {
+  MedioPagoID int [pk, increment]
+  Nombre varchar(50) [not null, unique]
+  Descripcion varchar(200)
+  Activo bit [not null]
+}
+
+Table PagoFactura {
+  PagoFacturaID int [pk, increment]
+  FacturaID int [not null]
+  MedioPagoID int [not null]
+  UsuarioCajeroID int [not null]
+  FechaHora datetime [not null]
+  Monto decimal(18,2) [not null]
+  Referencia varchar(100)
+}
+
+Table Devolucion {
+  DevolucionID int [pk, increment]
+  NumeroDevolucion varchar(30) [not null, unique]
+  FacturaID int [not null]
+  UsuarioID int [not null]
+  FechaHora datetime [not null]
+  Motivo varchar(300) [not null]
+}
+
+Table DetalleDevolucion {
+  DetalleDevolucionID int [pk, increment]
+  DevolucionID int [not null]
+  DetalleFacturaLoteID int [not null]
+  CantidadDevuelta decimal(18,4) [not null]
+
+  indexes {
+    (DevolucionID, DetalleFacturaLoteID) [unique]
+  }
+}
+
+Table AnulacionFactura {
+  AnulacionFacturaID int [pk, increment]
+  FacturaID int [not null, unique]
+  UsuarioID int [not null]
+  FechaHora datetime [not null]
+  Motivo varchar(300) [not null]
+}
+
+Ref: Usuario.EmpleadoID - Empleado.EmpleadoID
+Ref: Usuario.RolID > Rol.RolID
+Ref: Bitacora.UsuarioID > Usuario.UsuarioID
+
+Ref: Producto.CategoriaProductoID > CategoriaProducto.CategoriaProductoID
+Ref: Producto.MarcaID > Marca.MarcaID
+Ref: ProductoVariante.ProductoID > Producto.ProductoID
+Ref: ProductoVariante.PresentacionID > Presentacion.PresentacionID
+Ref: ProductoVariante.ColorID > Color.ColorID
+
+Ref: ProveedorProducto.ProveedorID > Proveedor.ProveedorID
+Ref: ProveedorProducto.ProductoVarianteID > ProductoVariante.ProductoVarianteID
+
+Ref: Ubicacion.BodegaID > Bodega.BodegaID
+
+Ref: OrdenCompra.ProveedorID > Proveedor.ProveedorID
+Ref: OrdenCompra.UsuarioID > Usuario.UsuarioID
+Ref: DetalleOrdenCompra.OrdenCompraID > OrdenCompra.OrdenCompraID
+Ref: DetalleOrdenCompra.ProductoVarianteID > ProductoVariante.ProductoVarianteID
+
+Ref: RecepcionCompra.OrdenCompraID > OrdenCompra.OrdenCompraID
+Ref: RecepcionCompra.UsuarioID > Usuario.UsuarioID
+Ref: DetalleRecepcionCompra.RecepcionCompraID > RecepcionCompra.RecepcionCompraID
+Ref: DetalleRecepcionCompra.DetalleOrdenCompraID > DetalleOrdenCompra.DetalleOrdenCompraID
+
+Ref: LoteInventario.DetalleRecepcionCompraID > DetalleRecepcionCompra.DetalleRecepcionCompraID
+Ref: LoteInventario.UbicacionID > Ubicacion.UbicacionID
+Ref: MovimientoInventario.LoteInventarioID > LoteInventario.LoteInventarioID
+Ref: MovimientoInventario.UsuarioID > Usuario.UsuarioID
+
+Ref: Cotizacion.ClienteID > Cliente.ClienteID
+Ref: Cotizacion.UsuarioID > Usuario.UsuarioID
+Ref: DetalleCotizacion.CotizacionID > Cotizacion.CotizacionID
+Ref: DetalleCotizacion.ProductoVarianteID > ProductoVariante.ProductoVarianteID
+
+Ref: Factura.ClienteID > Cliente.ClienteID
+Ref: Factura.CotizacionID - Cotizacion.CotizacionID
+Ref: Factura.UsuarioEmisorID > Usuario.UsuarioID
+Ref: DetalleFactura.FacturaID > Factura.FacturaID
+Ref: DetalleFactura.ProductoVarianteID > ProductoVariante.ProductoVarianteID
+Ref: DetalleFacturaLote.DetalleFacturaID > DetalleFactura.DetalleFacturaID
+Ref: DetalleFacturaLote.LoteInventarioID > LoteInventario.LoteInventarioID
+
+Ref: PagoFactura.FacturaID > Factura.FacturaID
+Ref: PagoFactura.MedioPagoID > MedioPago.MedioPagoID
+Ref: PagoFactura.UsuarioCajeroID > Usuario.UsuarioID
+
+Ref: Devolucion.FacturaID > Factura.FacturaID
+Ref: Devolucion.UsuarioID > Usuario.UsuarioID
+Ref: DetalleDevolucion.DevolucionID > Devolucion.DevolucionID
+Ref: DetalleDevolucion.DetalleFacturaLoteID > DetalleFacturaLote.DetalleFacturaLoteID
+
+Ref: AnulacionFactura.FacturaID - Factura.FacturaID
+Ref: AnulacionFactura.UsuarioID > Usuario.UsuarioID
