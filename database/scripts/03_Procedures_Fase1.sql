@@ -200,7 +200,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     EXEC dbo.sp_AutorizarFase1 @UsuarioActorID;
-    SELECT ProductoID, CategoriaProductoID, MarcaID, Nombre, Descripcion, ManejaLote, AplicaPEPS, Activo FROM dbo.Producto
+    SELECT ProductoID, CategoriaProductoID, MarcaID, Nombre, Descripcion, ManejaLote, AplicaPEPS, Activo FROM dbo.vw_ProductosDetalle
     WHERE (@Buscar IS NULL OR Nombre LIKE '%' + @Buscar + '%') AND (@Activo IS NULL OR Activo = @Activo)
     ORDER BY Nombre, ProductoID;
 END;
@@ -374,10 +374,10 @@ AS
 BEGIN
     SET NOCOUNT ON;
     EXEC dbo.sp_AutorizarFase1 @UsuarioActorID, 1;
-    SELECT u.UsuarioID, u.EmpleadoID, u.RolID, u.NombreUsuario, u.Activo,
-           e.Nombres + ' ' + e.Apellidos AS Empleado, r.Nombre AS Rol
-    FROM dbo.Usuario u JOIN dbo.Empleado e ON e.EmpleadoID = u.EmpleadoID
-    JOIN dbo.Rol r ON r.RolID = u.RolID ORDER BY u.NombreUsuario;
+    -- ISNULL conserva la columna Empleado como varchar(201) no anulable en el contrato.
+    SELECT UsuarioID, EmpleadoID, RolID, NombreUsuario, Activo,
+           ISNULL(Empleado, '') AS Empleado, Rol
+    FROM dbo.vw_UsuariosRoles ORDER BY NombreUsuario;
 END;
 GO
 

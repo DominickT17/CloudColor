@@ -54,18 +54,22 @@ Todos los mantenimientos usan Activo para la baja lógica. No hay DELETE físico
 - `dbo.vw_UsuariosRoles`: usuario, empleado, rol y estados, sin PasswordHash.
 - `dbo.vw_ProductosDetalle`: producto con nombres de categoría y marca.
 
-Los listados operativos de la aplicación se ejecutan mediante procedimientos. Las vistas están disponibles para consultas académicas y comprobaciones en SSMS, sin agregar módulos de reportes a la UI.
+Los listados operativos reutilizan ambas vistas: `sp_ProductoListar` consulta `vw_ProductosDetalle` y `sp_UsuarioListar` consulta `vw_UsuariosRoles`, por lo que la función también participa en el listado de usuarios. Se proyectan explícitamente las mismas columnas, en el mismo orden y con los mismos tipos y nulabilidad que consume C#. `ISNULL(Empleado, '')` conserva los metadatos no anulables del nombre completo; el JOIN obligatorio con Empleado mantiene los valores del listado anterior. Se conservan autorización, filtros y ordenamiento, sin agregar módulos de reportes a la UI.
 
 ## Evidencia de validación
 
 - Scripts 03, 04 y 05 ejecutados correctamente en CloudColorDB.
-- Prueba SQL 02: inserción, consulta parametrizada, modificación, baja/alta lógica de los cuatro mantenimientos; administración de usuarios y roles; función y vistas; rechazo de Cajero y marca inexistente. ROLLBACK al terminar.
-- Suite C#: 42 comprobaciones correctas, incluyendo creación del primer Gerente desde el formulario, login válido e inválido, mantenimiento desde botones y controles, usuarios/roles, hash con salt distinto, formato inválido, roles, cuenta/empleado inactivos y revalidación de una sesión abierta.
+- Secuencia 00 → 01 → 02 → 03 → 04 → 05 y ambas pruebas SQL verificadas también en una base temporal independiente, eliminada al terminar. La resolución diferida permite conservar el orden de instalación al integrar las vistas.
+- Pruebas SQL 01 y 02 correctas: estructura, integridad, inserción, consulta parametrizada, modificación, baja/alta lógica de los cuatro mantenimientos; administración de usuarios y roles; función y vistas; rechazo de Cajero y marca inexistente. ROLLBACK al terminar.
+- Los listados de Producto y Usuario verifican sus resultados mediante INSERT EXEC; se comprueban filtros de nombre/estado y nombre completo. Comparación de metadatos antes y después de integrar las vistas: columnas, orden, tipos, nulabilidad e intercalación idénticos.
+- La aserción de la función comprueba explícitamente NULL. En ejecuciones temporales de la prueba, forzar NULL o un nombre incorrecto produjo el error esperado 53006 y revirtió la transacción, sin modificar la función.
+- Suite C#: 49 comprobaciones correctas, incluyendo creación del primer Gerente desde el formulario, login válido e inválido, mantenimiento desde botones y controles, usuarios/roles, hash con salt distinto, formato inválido, roles, cuenta/empleado inactivos y revalidación de una sesión abierta.
+- Regresión de Producto: abrir Nueva marca durante una edición, cancelar conservando selecciones, crear una marca que no es la primera del catálogo, restaurar la categoría no inicial y mantener nombre, descripción, lote y PEPS pendientes; guardar actualiza el mismo ProductoID. Captura adicional: `%TEMP%/CloudColor-Pruebas/06-producto-nueva-marca.png`.
 - Un segundo intento de configuración inicial es rechazado. La serialización del bootstrap está implementada mediante bloqueo transaccional; la suite verifica intentos secuenciales, no una carrera simultánea de dos procesos.
 - Compilación Release sin errores ni advertencias.
 - Revisión visual de formularios renderizados; corregida alineación del editor y selección de la fila a modificar.
 - Auditoría NuGet de dependencias directas y transitivas: sin vulnerabilidades reportadas por los orígenes consultados.
-- Al terminar las pruebas: 31 tablas y 20 filas totales, sin usuarios ni datos comerciales de prueba. Las pruebas no restituyen los valores IDENTITY consumidos.
+- Al terminar las pruebas: 31 tablas y 20 filas totales, sin usuarios ni datos comerciales de prueba. Conteos de todas las tablas y contenido de los cuatro catálogos permanentes idénticos a los anteriores a las pruebas. Las pruebas no restituyen los valores IDENTITY consumidos.
 
 ## Permisos
 
@@ -79,7 +83,7 @@ La UI oculta datos técnicos innecesarios y nunca muestra PasswordHash. Negocio 
 
 ## Decisiones
 
-1. Autenticación: PBKDF2-HMAC-SHA256 en Negocio, 600 000 iteraciones, salt aleatorio de 16 bytes, hash de 32 bytes, comparación de tiempo constante y formato autocontenido en PasswordHash. Se sigue la instrucción técnica confirmada; no se implementa cifrado de contraseñas en SQL Server. La diferencia con la frase literal del enunciado requiere explicación académica.
+1. Autenticación: PBKDF2-HMAC-SHA256 en Negocio, 600 000 iteraciones, salt aleatorio de 16 bytes, hash de 32 bytes, comparación de tiempo constante y formato autocontenido en PasswordHash. SQL Server nunca recibe ni almacena la contraseña original: persiste únicamente el verificador protegido y lo devuelve al flujo de login para validarlo en Negocio. La contraseña original existe temporalmente en memoria de C#. Se sigue la instrucción técnica confirmada; no se agregan HASHBYTES, cifrado simétrico ni criptografía adicional en SQL Server. La diferencia con la frase literal del enunciado requiere explicación académica.
 2. Roles: los nombres son fijos; se editan descripción y estado. Gerente no se desactiva. Desde administración no se modifica la propia cuenta; otro Gerente puede efectuar esos cambios. Un empleado con cuenta Gerente activa no se desactiva directamente.
 3. Catálogos: se permite capturar una marca real desde Producto para que su FK pueda completarse sin datos ficticios. No se agregan tablas ni un quinto mantenimiento principal.
 4. Precios: pertenecen a ProductoVariante según el DBML; no se inventa un campo precio en Producto. El mantenimiento de variantes no forma parte de esta entrega.

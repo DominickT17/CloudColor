@@ -40,10 +40,11 @@ public sealed class LoginForm : DialogoBase
 }
 public sealed class MarcaForm : DialogoBase
 {
+    public int MarcaCreadaID { get; private set; }
     public MarcaForm(Aplicacion app) : base("Nueva marca")
     {
         var nombre=new TextBox { Name="Nombre",MaxLength=100 };
         Campo("Nombre real",nombre);
-        Terminar("Guardar marca",()=> { app.Catalogos.CrearMarca(nombre.Text); DialogResult=DialogResult.OK; Close(); });
+        Terminar("Guardar marca",()=> { MarcaCreadaID=app.Catalogos.CrearMarca(nombre.Text); DialogResult=DialogResult.OK; Close(); });
     }
 }

@@ -24,15 +24,22 @@ public sealed class ProductoForm : FormularioBase<Producto>
         nuevaMarca.Click+=(_,_)=>Intentar(()=>
         {
             using var dialogo=new MarcaForm(app);
-            if(dialogo.ShowDialog(this)==DialogResult.OK) Preparar();
+            if(dialogo.ShowDialog(this)==DialogResult.OK) RecargarCatalogos(dialogo.MarcaCreadaID);
         });
     }
-    protected override void Preparar()
+    protected override void Preparar() => RecargarCatalogos();
+    private void RecargarCatalogos(int? marcaCreadaID=null)
     {
+        int? categoriaID=campoCategoriaProductoID.SelectedValue as int?;
+        int? marcaID=marcaCreadaID ?? campoMarcaID.SelectedValue as int?;
         campoCategoriaProductoID.DisplayMember="Nombre"; campoCategoriaProductoID.ValueMember="ID";
         campoCategoriaProductoID.DataSource=app.Catalogos.Categorias().Where(x=>x.Activo).ToList();
         campoMarcaID.DisplayMember="Nombre"; campoMarcaID.ValueMember="ID";
         campoMarcaID.DataSource=app.Catalogos.Marcas().Where(x=>x.Activo).ToList();
+        if(categoriaID.HasValue) campoCategoriaProductoID.SelectedValue=categoriaID.Value;
+        else campoCategoriaProductoID.SelectedIndex=-1;
+        if(marcaID.HasValue) campoMarcaID.SelectedValue=marcaID.Value;
+        else campoMarcaID.SelectedIndex=-1;
     }
     protected override List<Producto> Listar(string buscar) => app.Productos.Listar(buscar);
     protected override void Mostrar(Producto e)

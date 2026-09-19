@@ -43,6 +43,8 @@ Detenerse si un archivo devuelve un error. Los scripts seleccionan explícitamen
 
 Los scripts 03 a 05 usan CREATE PROCEDURE, CREATE FUNCTION y CREATE VIEW: se instalan una vez y no son migraciones repetibles. Si la etapa inicial ya existe, comenzar en 03. En el entorno local actual ya están instalados todos los objetos; no repetir su creación.
 
+Los procedimientos de listado de usuarios y productos utilizan las vistas del script 05; ejecutar toda la secuencia antes de abrir la aplicación. SQL Server permite crear los procedimientos del script 03 antes de que existan esas vistas mediante resolución diferida de nombres. Para actualizar una instalación anterior a la corrección final, ejecutar únicamente los bloques de `sp_ProductoListar` y `sp_UsuarioListar` del script 03, sustituyendo `CREATE PROCEDURE` por `ALTER PROCEDURE` y usando CloudColorDB; las vistas de 05 deben estar ya instaladas. No repetir el archivo 03 completo.
+
 Las pruebas se ejecutan sin transacciones abiertas ni escrituras concurrentes. Utilizan datos sintéticos y los revierten. No dejan clientes, empleados, usuarios ni facturas de prueba. Los valores IDENTITY consumidos no se recuperan con ROLLBACK, por lo que pueden aparecer saltos normales en los identificadores.
 
 ## Estructura y reglas
@@ -101,6 +103,8 @@ Si no hay usuarios, se solicita código de empleado, nombres, apellidos, usuario
 
 Negocio genera PBKDF2-HMAC-SHA256 con 600 000 iteraciones, salt aleatorio de 16 bytes y resultado de 32 bytes. La contraseña admite entre 12 y 128 caracteres. PasswordHash conserva un único string `PBKDF2$SHA256$iteraciones$saltBase64$hashBase64`. La verificación utiliza comparación criptográfica de tiempo constante. La contraseña no se escribe en logs ni se envía a SQL; las vistas y cuadrículas no muestran hashes.
 
+SQL Server nunca recibe ni almacena la contraseña original: únicamente persiste el verificador protegido en PasswordHash. La contraseña escrita circula temporalmente entre el formulario y Negocio en memoria del proceso C#. Al crear una cuenta, `sp_ConfiguracionInicial` o `sp_UsuarioCrear` recibe el verificador generado por Negocio. Al iniciar sesión, `sp_UsuarioObtenerPorNombreUsuario` recibe el nombre de usuario y devuelve el verificador junto con los datos de la cuenta; Negocio realiza la comprobación PBKDF2. Un cambio de contraseña también envía solamente el nuevo verificador. No se implementan HASHBYTES, cifrado simétrico ni otra criptografía de contraseñas en SQL Server.
+
 El costo sigue la [referencia de almacenamiento de contraseñas de OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html). Un hash no es cifrado reversible. El enunciado dice “cifrada desde la base de datos”; por decisión técnica confirmada, C# genera y compara el hash, y SQL lo almacena y entrega al login. Debe explicarse esa diferencia en la revisión académica, sin afirmar que SQL realiza el cifrado.
 
 El login verifica usuario, empleado y rol activos. Negocio revalida la sesión antes de cada operación. Los perfiles son permisos de la aplicación, no logins independientes de SQL Server. Los procedimientos verifican al usuario actor, pero una persona con permisos directos de administración de la base puede ejecutar SQL al margen de la aplicación; este proyecto no sustituye la seguridad de la cuenta Windows.
@@ -115,6 +119,8 @@ El login verifica usuario, empleado y rol activos. Negocio revalida la sesión a
 
 Los cuatro mantenimientos permiten listar, buscar, seleccionar, crear, modificar y activar/desactivar. Se conserva el historial mediante Activo. Producto selecciona categoría y marca con ComboBox; Nueva marca permite registrar una marca real en el catálogo inicialmente vacío, sin convertirse en otro módulo principal. PrecioVentaActual pertenece a ProductoVariante: no se agrega un precio a Producto ni se implementa el mantenimiento de variantes en esta etapa.
 
+Al crear una marca desde un producto en edición, se recargan los catálogos conservando la categoría y seleccionando el ID de la marca recién creada; nombre, descripción y opciones del producto mantienen sus valores pendientes. Cancelar el diálogo conserva la selección existente. `sp_ProductoListar` consulta `vw_ProductosDetalle` y `sp_UsuarioListar` consulta `vw_UsuariosRoles`, que utiliza `fn_EmpleadoNombreCompleto`; los resultados conservan las columnas, orden, tipos y nulabilidad consumidos por C#.
+
 Usuarios permite seleccionar empleado y rol, crear cuentas, modificar datos, cambiar rol y activar/desactivar. Al editar, contraseña vacía conserva el hash; una nueva lo reemplaza. Modificar usuario y cambiar rol se ejecutan en una transacción.
 
 Roles permite modificar descripción y estado; los tres nombres se conservan para mantener la matriz de permisos. No se añade Administrador. No se permite desactivar Gerente, modificar la propia cuenta desde administración ni desactivar un empleado con cuenta Gerente activa. Para cambiar esa cuenta se debe usar otra cuenta Gerente y resolver antes el estado de la cuenta asociada.
@@ -127,10 +133,12 @@ dotnet run --project tests/CloudColor.Pruebas -c Release
 
 La suite requiere los scripts instalados y una base sin datos de negocio, antes de crear la primera cuenta real. Rechaza la ejecución si ya hay usuarios y nunca elimina cuentas existentes. Genera credenciales efímeras, acciona formularios fuera del área visible y revierte todos los datos mediante una transacción ambiental. No ejecutar durante uso concurrente. Las capturas quedan en `%TEMP%/CloudColor-Pruebas`, fuera del repositorio.
 
+Incluye la regresión de Nueva marca durante la edición de Producto: cancelar, conservar una categoría distinta de la primera, seleccionar la nueva marca, mantener los demás campos y guardar sobre el mismo ProductoID. La prueba SQL 02 valida los listados que reutilizan las vistas y rechaza un nombre completo NULL además de un valor incorrecto.
+
 Después de crear cuentas reales, preparar un entorno SQL separado con los mismos scripts y configurar la conexión del ejecutable de pruebas. No borrar datos reales para repetir la suite.
 
 ## Estado
 
-Objetos SQL instalados y probados, solución compilada y formularios verificados. El inventario está en `docs/fase1/Estado_Fase1.md`. Quedan la revisión académica, el alta de la primera cuenta real y la revisión final antes de integrar feat/fase1 a main.
+Objetos SQL instalados y probados, solución compilada y formularios verificados. Las correcciones finales posteriores a la auditoría están documentadas en `docs/fase1/Estado_Fase1.md`. Quedan el alta de la primera cuenta real y la aprobación final antes de integrar feat/fase1 a main.
 
 Facturación, compras, impresión, PEPS operativo, reportes, devoluciones y anulaciones pertenecen a etapas posteriores; no están implementados en esta UI.

@@ -43,8 +43,20 @@ BEGIN TRY
     EXEC dbo.sp_ProductoModificar @Gerente, @Producto, @Categoria, @Marca, 'Producto modificado', NULL, 1, 1;
     EXEC dbo.sp_ProductoCambiarActivo @Gerente, @Producto, 0;
     IF NOT EXISTS (SELECT 1 FROM dbo.Producto WHERE ProductoID = @Producto AND Nombre = 'Producto modificado' AND Activo = 0) THROW 53004, 'Fallo Producto.', 1;
+    -- Capturar el resultado comprueba cantidad, orden y compatibilidad de columnas del listado.
+    DECLARE @Productos TABLE (ProductoID int, CategoriaProductoID int, MarcaID int, Nombre varchar(150), Descripcion varchar(300), ManejaLote bit, AplicaPEPS bit, Activo bit);
+    INSERT @Productos EXEC dbo.sp_ProductoListar @Gerente, 'Producto modificado', 0;
+    IF NOT EXISTS (SELECT 1 FROM @Productos WHERE ProductoID = @Producto AND CategoriaProductoID = @Categoria AND MarcaID = @Marca AND Nombre = 'Producto modificado' AND Descripcion IS NULL AND ManejaLote = 1 AND AplicaPEPS = 1 AND Activo = 0) THROW 53014, 'Fallo contrato listado Producto inactivo.', 1;
+    DELETE FROM @Productos;
+    INSERT @Productos EXEC dbo.sp_ProductoListar @Gerente, 'Producto modificado', 1;
+    IF EXISTS (SELECT 1 FROM @Productos WHERE ProductoID = @Producto) THROW 53015, 'Fallo filtro Activo de Producto.', 1;
     EXEC dbo.sp_ProductoCambiarActivo @Gerente, @Producto, 1;
-    EXEC dbo.sp_ProductoListar @Gerente, 'Producto modificado';
+    INSERT @Productos EXEC dbo.sp_ProductoListar @Gerente, 'Producto modificado', 1;
+    IF NOT EXISTS (SELECT 1 FROM @Productos WHERE ProductoID = @Producto AND Activo = 1) THROW 53016, 'Fallo listado Producto activo.', 1;
+    DELETE FROM @Productos;
+    DECLARE @BusquedaAusente varchar(180) = 'SIN_COINCIDENCIA-' + @Codigo;
+    INSERT @Productos EXEC dbo.sp_ProductoListar @Gerente, @BusquedaAusente;
+    IF EXISTS (SELECT 1 FROM @Productos) THROW 53017, 'Fallo busqueda de Producto.', 1;
     DELETE FROM @IDs;
     DECLARE @Codigo2 varchar(30) = 'E-' + @Codigo;
     INSERT @IDs EXEC dbo.sp_EmpleadoInsertar @Gerente, @Codigo2, 'Empleado', 'Temporal';
@@ -54,7 +66,8 @@ BEGIN TRY
     IF NOT EXISTS (SELECT 1 FROM dbo.Empleado WHERE EmpleadoID = @Empleado AND Activo = 0) THROW 53005, 'Fallo Empleado.', 1;
     EXEC dbo.sp_EmpleadoCambiarActivo @Gerente, @Empleado, 1;
     EXEC dbo.sp_EmpleadoListar @Gerente, 'Empleado modificado';
-    IF dbo.fn_EmpleadoNombreCompleto(@Empleado) <> 'Empleado modificado Temporal' THROW 53006, 'Fallo funcion.', 1;
+    DECLARE @NombreCompleto varchar(201) = dbo.fn_EmpleadoNombreCompleto(@Empleado);
+    IF @NombreCompleto IS NULL OR @NombreCompleto <> 'Empleado modificado Temporal' THROW 53006, 'Fallo funcion.', 1;
     IF NOT EXISTS (SELECT 1 FROM dbo.vw_ProductosDetalle WHERE ProductoID = @Producto AND Marca = @Codigo AND Categoria = 'Pinturas') THROW 53007, 'Fallo vista productos.', 1;
     SELECT @Rol = RolID FROM dbo.Rol WHERE Nombre = 'Digitador';
     DELETE FROM @IDs;
@@ -71,7 +84,9 @@ BEGIN TRY
     IF NOT EXISTS (SELECT 1 FROM dbo.Rol WHERE RolID = @Rol AND Descripcion = 'Descripcion temporal') THROW 53009, 'Fallo Rol.', 1;
     IF NOT EXISTS (SELECT 1 FROM dbo.vw_UsuariosRoles WHERE UsuarioID = @Usuario AND Rol = 'Cajero') THROW 53010, 'Fallo vista usuarios.', 1;
     IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.vw_UsuariosRoles') AND name = 'PasswordHash') THROW 53011, 'La vista expone credenciales.', 1;
-    EXEC dbo.sp_UsuarioListar @Gerente;
+    DECLARE @Usuarios TABLE (UsuarioID int, EmpleadoID int, RolID int, NombreUsuario varchar(50), Activo bit, Empleado varchar(201), Rol varchar(50));
+    INSERT @Usuarios EXEC dbo.sp_UsuarioListar @Gerente;
+    IF NOT EXISTS (SELECT 1 FROM @Usuarios WHERE UsuarioID = @Usuario AND EmpleadoID = @Empleado AND RolID = @Rol AND NombreUsuario = @Codigo2 AND Activo = 1 AND Empleado = 'Empleado modificado Temporal' AND Rol = 'Cajero') THROW 53018, 'Fallo contrato listado Usuario y nombre completo.', 1;
     EXEC dbo.sp_RolListar @Gerente;
     SET @Rechazado = 0;
     BEGIN TRY

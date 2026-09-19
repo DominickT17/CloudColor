@@ -29,6 +29,36 @@ internal static class Program
     }
     private static void Pulsar(Form f,string nombre) { Control<Button>(f,nombre).PerformClick(); Application.DoEvents(); }
     private static void Texto(Form f,string nombre,string valor) => Control<TextBox>(f,nombre).Text=valor;
+    private static void NuevaMarca(ProductoForm producto,string? nombre)
+    {
+        Exception? error=null;
+        bool completado=false;
+        var limite=DateTime.UtcNow.AddSeconds(10);
+        using var timer=new System.Windows.Forms.Timer { Interval=50 };
+        timer.Tick+=(_,_)=>
+        {
+            var dialogo=Application.OpenForms.OfType<MarcaForm>().SingleOrDefault();
+            if(dialogo==null && DateTime.UtcNow<limite) return;
+            timer.Stop();
+            try
+            {
+                if(dialogo==null) throw new Exception("No se abrio Nueva marca.");
+                dialogo.ShowInTaskbar=false; dialogo.Location=new Point(-20000,-20000);
+                if(nombre==null) dialogo.Close();
+                else
+                {
+                    Texto(dialogo,"Nombre",nombre); Pulsar(dialogo,"Aceptar");
+                    if(dialogo.DialogResult!=DialogResult.OK) throw new Exception("No se guardo Nueva marca.");
+                }
+                completado=true;
+            }
+            catch(Exception ex) { error=ex; dialogo?.Close(); }
+        };
+        timer.Start();
+        Pulsar(producto,"NuevaMarca");
+        if(error!=null) throw error;
+        Comprobar(completado,nombre==null ? "cancelar dialogo Nueva marca" : "crear marca desde dialogo modal de Producto");
+    }
     private static void Foto(Form f,string nombre)
     {
         Directory.CreateDirectory(Capturas);
@@ -96,7 +126,29 @@ internal static class Program
                 {
                     Abrir(f); Control<ComboBox>(f,"CategoriaProductoID").SelectedIndex=0; Control<ComboBox>(f,"MarcaID").SelectedValue=marca;
                     Texto(f,"Nombre","Producto UI"); Pulsar(f,"Guardar"); Comprobar(app.Productos.Listar().Count==1,"crear Producto UI con catalogos");
-                    SeleccionarPrimero(f); Texto(f,"Nombre","Producto editado"); Pulsar(f,"Guardar"); Comprobar(app.Productos.Listar("editado").Count==1,"editar Producto UI");
+                    int productoID=app.Productos.Listar().Single().ProductoID;
+                    SeleccionarPrimero(f);
+                    var categorias=Control<ComboBox>(f,"CategoriaProductoID");
+                    categorias.SelectedIndex=1; // Una categoria distinta de la primera detecta el reinicio del ComboBox.
+                    int categoriaID=(int)categorias.SelectedValue!;
+                    Texto(f,"Nombre","Producto editado"); Texto(f,"Descripcion","Descripcion sin guardar");
+                    Control<CheckBox>(f,"ManejaLote").Checked=true; Control<CheckBox>(f,"AplicaPEPS").Checked=true;
+                    NuevaMarca(f,null);
+                    Comprobar((int)categorias.SelectedValue! == categoriaID && (int)Control<ComboBox>(f,"MarcaID").SelectedValue! == marca,
+                        "cancelar Nueva marca conserva categoria y marca del producto en edicion");
+                    NuevaMarca(f,"ZZ Marca nueva del editor"); // No es la primera marca por orden alfabetico.
+                    int marcaNueva=app.Catalogos.Marcas().Single(m=>m.Nombre=="ZZ Marca nueva del editor").ID;
+                    Comprobar((int)categorias.SelectedValue! == categoriaID,"Nueva marca restaura categoria no inicial");
+                    Comprobar((int)Control<ComboBox>(f,"MarcaID").SelectedValue! == marcaNueva,"Nueva marca selecciona explicitamente el ID creado");
+                    Comprobar(Control<TextBox>(f,"Nombre").Text=="Producto editado" && Control<TextBox>(f,"Descripcion").Text=="Descripcion sin guardar"
+                        && Control<CheckBox>(f,"ManejaLote").Checked && Control<CheckBox>(f,"AplicaPEPS").Checked,
+                        "Nueva marca conserva nombre descripcion lote y PEPS sin guardar");
+                    Foto(f,"06-producto-nueva-marca");
+                    Pulsar(f,"Guardar"); Comprobar(app.Productos.Listar("editado").Count==1,"editar Producto UI");
+                    var guardado=app.Productos.Listar().Single();
+                    Comprobar(guardado.ProductoID==productoID && guardado.CategoriaProductoID==categoriaID && guardado.MarcaID==marcaNueva
+                        && guardado.Nombre=="Producto editado" && guardado.Descripcion=="Descripcion sin guardar" && guardado.ManejaLote && guardado.AplicaPEPS,
+                        "guardar tras Nueva marca actualiza el mismo Producto con todos sus valores");
                     SeleccionarPrimero(f); Pulsar(f,"Activar"); Comprobar(!app.Productos.Listar().Single().Activo,"desactivar Producto UI"); Foto(f,"06-productos");
                 }
                 int empleado;
