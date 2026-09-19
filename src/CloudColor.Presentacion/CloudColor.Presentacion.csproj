@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\CloudColor.Negocio\CloudColor.Negocio.csproj" />
+    <ProjectReference Include="..\CloudColor.Entidades\CloudColor.Entidades.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="conexion.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="conexion.local.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
