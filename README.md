@@ -1,6 +1,6 @@
 # CloudColor
 
-Proyecto Final de Bases de Datos II para administrar una empresa de pinturas y productos relacionados. La base de datos concentra el catálogo, compras con entregas parciales, inventario por ubicación y lote, cotizaciones, facturas, pagos, devoluciones y auditoría.
+Proyecto Final de Bases de Datos II para administrar una empresa de pinturas y productos relacionados. La base de datos concentra el catálogo, compras con entregas parciales, inventario por ubicación y lote, cotizaciones, facturas, pagos, devoluciones y auditoría. Fase I está validada e integrada a main. Fase II implementa compras, inventario, cotización, facturación, cobros e impresión en feat/fase2; queda pendiente la revisión humana antes del merge. Devoluciones, anulaciones y reportes de la fase posterior todavía no se implementan.
 
 ## Tecnología
 
@@ -25,10 +25,18 @@ Proyecto Final de Bases de Datos II para administrar una empresa de pinturas y p
 - `docs/fase1/Normalizacion_3FN.md`: justificación aplicada al modelo.
 - `docs/fase1/Estado_Fase1.md`: inventario y evidencia de Fase I.
 - `src/CloudColor.sln`: solución de cuatro capas y proyecto de pruebas.
+- `database/scripts/06_Types_Fase2.sql`: cuatro tipos tabla para parámetros TVP.
+- `database/scripts/07_Views_Fase2.sql`: variantes e inventario por ingreso.
+- `database/scripts/08_Procedures_Catalogos_Fase2.sql`: autorización, variantes, bodegas, ubicaciones y proveedores por variante.
+- `database/scripts/09_Procedures_Cotizacion.sql`: cotizaciones y confirmación.
+- `database/scripts/10_Procedures_Facturacion.sql`: emisión con PEPS, cobro y consultas.
+- `database/scripts/11_Procedures_Compras.sql`: órdenes y recepciones parciales/completas.
+- `database/tests/03_TestFase2.sql`: pruebas SQL de Fase II con ROLLBACK.
+- `docs/fase2/Estado_Fase2.md`: objetos, flujos, permisos, evidencia y guía de revisión.
 
 ## Ejecución en SSMS
 
-Conectarse a SQL Server 2022 Express, por ejemplo `.\SQLEXPRESS`, con permisos de creación de base y objetos. Abrir y ejecutar completos, en este orden:
+Para una instalación nueva, conectarse a SQL Server 2022 Express, por ejemplo `.\SQLEXPRESS`, con permisos de creación de base y objetos. Abrir y ejecutar completos, en este orden:
 
 1. `database/scripts/00_CreateDatabase.sql`
 2. `database/scripts/01_CreateTables.sql`
@@ -36,12 +44,20 @@ Conectarse a SQL Server 2022 Express, por ejemplo `.\SQLEXPRESS`, con permisos d
 4. `database/scripts/03_Procedures_Fase1.sql`
 5. `database/scripts/04_Functions_Fase1.sql`
 6. `database/scripts/05_Views_Fase1.sql`
-7. `database/tests/01_TestStructure.sql`
-8. `database/tests/02_TestFase1.sql`
+7. `database/scripts/06_Types_Fase2.sql`
+8. `database/scripts/07_Views_Fase2.sql`
+9. `database/scripts/08_Procedures_Catalogos_Fase2.sql`
+10. `database/scripts/09_Procedures_Cotizacion.sql`
+11. `database/scripts/10_Procedures_Facturacion.sql`
+12. `database/scripts/11_Procedures_Compras.sql`
+
+Las pruebas SQL 01, 02 y 03 se ejecutan después de esa instalación en un entorno de pruebas. La suite C# descrita abajo prepara automáticamente una base temporal, instala 00–11 y ejecuta las tres suites SQL sin escribir en CloudColorDB.
 
 Detenerse si un archivo devuelve un error. Los scripts seleccionan explícitamente `CloudColorDB`. El primero conserva una base existente. El segundo requiere una base sin tablas de usuario y rechaza su repetición sin reemplazar objetos; crea toda la estructura en una transacción. El tercero puede repetirse: solo inserta nombres ausentes, sin sobrescribir registros existentes.
 
 Los scripts 03 a 05 usan CREATE PROCEDURE, CREATE FUNCTION y CREATE VIEW: se instalan una vez y no son migraciones repetibles. Si la etapa inicial ya existe, comenzar en 03. En el entorno local actual ya están instalados todos los objetos; no repetir su creación.
+
+Para ampliar una instalación de Fase I que ya tenga 00–05, instalar **solo 06 → 07 → 08 → 09 → 10 → 11**, una vez. Todos los objetos de Fase II usan CREATE y no se deben repetir si ya existen. En la instancia local revisada el 12 de octubre de 2026 ya están instalados: las definiciones de las dos vistas y los 30 procedimientos coinciden con estos scripts. No es necesario volver a ejecutar SQL para iniciar la aplicación. Si existe una instalación parcial, revisar cada objeto antes de continuar; actualizar solamente sus bloques con ALTER PROCEDURE/ALTER VIEW cuando corresponda, conservando ANSI_NULLS y QUOTED_IDENTIFIER ON. Los tipos tabla no se reemplazan automáticamente.
 
 Los procedimientos de listado de usuarios y productos utilizan las vistas del script 05; ejecutar toda la secuencia antes de abrir la aplicación. SQL Server permite crear los procedimientos del script 03 antes de que existan esas vistas mediante resolución diferida de nombres. Para actualizar una instalación anterior a la corrección final, ejecutar únicamente los bloques de `sp_ProductoListar` y `sp_UsuarioListar` del script 03, sustituyendo `CREATE PROCEDURE` por `ALTER PROCEDURE` y usando CloudColorDB; las vistas de 05 deben estar ya instaladas. No repetir el archivo 03 completo.
 
@@ -53,11 +69,11 @@ Se implementan las 31 tablas, 43 FK, 31 PK con IDENTITY y las 23 restricciones U
 
 La regla confirmada es `Cotizacion 1 -> 0..1 Factura`. El índice `UX_Factura_CotizacionID_NotNull` impide reutilizar una cotización, pero permite múltiples facturas con `CotizacionID = NULL`. No se añade UNIQUE sin filtro a esa columna. Esta decisión se documenta aquí sin modificar el DBML.
 
-Los 17 CHECK validan cantidades positivas, precios y costos no negativos, stock mínimo no negativo, disponibilidad entre cero y la cantidad inicial, pagos positivos y totales entre cero y el importe original. Los movimientos exigen cantidad distinta de cero; su convenio de signos y tipos se definirá con los procedimientos. No se fijan listas de estados que el enunciado no define. Ninguna FK utiliza eliminación en cascada.
+Los 17 CHECK validan cantidades positivas, precios y costos no negativos, stock mínimo no negativo, disponibilidad entre cero y la cantidad inicial, pagos positivos y totales entre cero y el importe original. Los movimientos exigen cantidad distinta de cero; en Fase II ENTRADA_COMPRA es positiva y SALIDA_VENTA negativa. No se fijan listas de estados que el enunciado no define. Ninguna FK utiliza eliminación en cascada.
 
 La unicidad compuesta de ProductoVariante se conserva tal como está en el modelo, incluido ColorID opcional: no se permiten variantes repetidas con la misma combinación de producto y presentación sin color.
 
-Los CHECK no sustituyen las futuras validaciones entre tablas: correspondencia entre orden y recepción, variante y lote vendido, factura y devolución; límites acumulados de recepción/devolución; actualización de existencias; PEPS; pagos y totales; reversión de inventario sin duplicar devoluciones previas. Se resolverán mediante operaciones transaccionales en la siguiente etapa.
+Los CHECK se complementan con los procedimientos transaccionales de Fase II: correspondencia orden/recepción y variante/lote, límite acumulado recibido, existencias suficientes, PEPS y pagos exactos. Las validaciones de devolución, anulación y reversión de inventario pertenecen a la fase posterior.
 
 ## Datos iniciales
 
@@ -115,9 +131,9 @@ El login verifica usuario, empleado y rol activos. Negocio revalida la sesión a
 |---|---|
 | Digitador | Cliente, Proveedor, Producto y Empleado |
 | Gerente | Los cuatro mantenimientos, Usuarios y Roles |
-| Cajero | Login y menú; cobros pendientes de otra fase |
+| Cajero | Login y menú; consulta de facturas y cobro incorporados en Fase II |
 
-Los cuatro mantenimientos permiten listar, buscar, seleccionar, crear, modificar y activar/desactivar. Se conserva el historial mediante Activo. Producto selecciona categoría y marca con ComboBox; Nueva marca permite registrar una marca real en el catálogo inicialmente vacío, sin convertirse en otro módulo principal. PrecioVentaActual pertenece a ProductoVariante: no se agrega un precio a Producto ni se implementa el mantenimiento de variantes en esta etapa.
+Los cuatro mantenimientos permiten listar, buscar, seleccionar, crear, modificar y activar/desactivar. Se conserva el historial mediante Activo. Producto selecciona categoría y marca con ComboBox; Nueva marca permite registrar una marca real en el catálogo inicialmente vacío, sin convertirse en otro módulo principal. PrecioVentaActual pertenece a ProductoVariante: no se agrega un precio a Producto y su mantenimiento separado se incorpora en Fase II.
 
 Al crear una marca desde un producto en edición, se recargan los catálogos conservando la categoría y seleccionando el ID de la marca recién creada; nombre, descripción y opciones del producto mantienen sus valores pendientes. Cancelar el diálogo conserva la selección existente. `sp_ProductoListar` consulta `vw_ProductosDetalle` y `sp_UsuarioListar` consulta `vw_UsuariosRoles`, que utiliza `fn_EmpleadoNombreCompleto`; los resultados conservan las columnas, orden, tipos y nulabilidad consumidos por C#.
 
@@ -131,14 +147,34 @@ Roles permite modificar descripción y estado; los tres nombres se conservan par
 dotnet run --project tests/CloudColor.Pruebas -c Release
 ```
 
-La suite requiere los scripts instalados y una base sin datos de negocio, antes de crear la primera cuenta real. Rechaza la ejecución si ya hay usuarios y nunca elimina cuentas existentes. Genera credenciales efímeras, acciona formularios fuera del área visible y revierte todos los datos mediante una transacción ambiental. No ejecutar durante uso concurrente. Las capturas quedan en `%TEMP%/CloudColor-Pruebas`, fuera del repositorio.
+La suite crea una base `CloudColor_QA_<GUID>` en la instancia configurada, instala 00–11 y ejecuta las pruebas SQL 01–03. Luego ejecuta Fase I y Fase II con credenciales efímeras y transacciones que se revierten. CloudColorDB se consulta únicamente para comparar cantidades y huellas del contenido antes/después, sin mostrar contraseñas ni hashes. La base temporal se elimina al terminar, incluso si una prueba lanza un error controlado. No modificar datos de CloudColorDB durante la comparación.
+
+Se requiere permiso local CREATE/DROP DATABASE; la opción de concurrencia también necesita visibilidad de las sesiones SQL Server. Si faltan permisos, resolverlos en el entorno de pruebas; nunca vaciar CloudColorDB. Una interrupción forzada del proceso puede impedir el finally: en ese caso identificar la base QA exacta antes de una limpieza manual, sin usar eliminaciones por comodines.
+
+```powershell
+dotnet build src/CloudColor.sln -c Release --nologo -warnaserror
+dotnet run --project tests/CloudColor.Pruebas -c Release --no-build -- --concurrencia
+```
+
+La opción `--concurrencia` prueba venta, cotización, cobro y recepción mediante dos conexiones y comprueba que la segunda espera el bloqueo antes de rechazar el conflicto. Las capturas de formularios quedan en `%TEMP%/CloudColor-Pruebas`, fuera del repositorio. Para la prueba PrintDocument se necesita una impresora Windows válida (puede ser una impresora virtual ya instalada); se utiliza PreviewPrintController y no se envían documentos a una impresora física.
 
 Incluye la regresión de Nueva marca durante la edición de Producto: cancelar, conservar una categoría distinta de la primera, seleccionar la nueva marca, mantener los demás campos y guardar sobre el mismo ProductoID. La prueba SQL 02 valida los listados que reutilizan las vistas y rechaza un nombre completo NULL además de un valor incorrecto.
 
-Después de crear cuentas reales, preparar un entorno SQL separado con los mismos scripts y configurar la conexión del ejecutable de pruebas. No borrar datos reales para repetir la suite.
+## Uso de Fase II
+
+1. Como Digitador o Gerente, preparar Producto en el mantenimiento de Fase I y luego su ProductoVariante con presentación, color opcional, SKU, precio y stock mínimo. Bodegas, ubicaciones y asociaciones proveedor/variante se administran desde sus pantallas.
+2. En Compras y recepciones, seleccionar proveedor y variantes asociadas, cantidades y costos acordados. Guardar la orden y abrir Recibir compra desde Consultar. Cada recepción conserva cantidad, costo real, ubicación, lote proveedor cuando corresponda y fecha de ingreso.
+3. Consultar Inventario para ver los ingresos disponibles por lote. Una orden de 100 puede recibir 75 (PARCIAL) y 25 (COMPLETA); 75 + 30 se rechaza.
+4. Crear una cotización, consultar y confirmar. Facturar cotización usa sus precios históricos; Facturas también permite emisión directa. La emisión descuenta existencias dentro de una transacción y deja la factura PENDIENTE_PAGO.
+5. Como Cajero o Gerente, abrir Facturas / cobros, seleccionar la factura y distribuir el total entre Efectivo, Cheque y Tarjeta. Cheque y Tarjeta requieren referencia. El cobro completo marca PAGADA y no se permite cobrar otra vez.
+6. Desde la consulta de factura, usar Vista previa / imprimir. El documento incluye cliente, emisor, detalle, total y medios registrados.
+
+Los TVP envían los detalles como tablas parametrizadas. No se usan JSON/XML en los procedimientos. PEPS utiliza WHILE, FechaIngreso y LoteInventarioID como desempate cuando Producto.AplicaPEPS está activo. Incluso sin número de lote del proveedor existe un lote interno por ingreso. El detalle de lotes y los movimientos conservan cada salida.
+
+Gerente conserva administración de Fase I y puede consultar y operar Fase II. Digitador mantiene catálogos, compras, recepciones, cotizaciones y emisión; no cobra. Cajero consulta/imprime facturas y cobra; no mantiene catálogos ni emite. UI, Negocio y procedimientos verifican esos permisos.
 
 ## Estado
 
-Objetos SQL instalados y probados, solución compilada y formularios verificados. Las correcciones finales posteriores a la auditoría están documentadas en `docs/fase1/Estado_Fase1.md`. Quedan el alta de la primera cuenta real y la aprobación final antes de integrar feat/fase1 a main.
+Fase I conserva sus funcionalidades y sus 49 comprobaciones de regresión. El documento `docs/fase1/Estado_Fase1.md` describe la entrega histórica previa a su integración; el estado actual de Fase II está en [Estado_Fase2.md](docs/fase2/Estado_Fase2.md).
 
-Facturación, compras, impresión, PEPS operativo, reportes, devoluciones y anulaciones pertenecen a etapas posteriores; no están implementados en esta UI.
+Build Release sin errores ni advertencias; instalación 00–11, pruebas SQL, integración WinForms y concurrencia verificadas en una base desechable. Los datos reales locales se conservaron. La rama feat/fase2 requiere revisión humana y todavía no se ha integrado a main.
