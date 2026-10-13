@@ -100,6 +100,14 @@ Al terminar, crear el archivo `.stop` exacto que imprime la suite para cerrar Ke
 
 ## Evidencias recomendadas y límites
 
+### Refinamiento de usabilidad
+
+Los catálogos muestran acciones específicas como Crear cliente, permiten limpiar la búsqueda y conservan el filtro al abrir el alta. Los importes muestran Q y dos decimales; las cantidades eliminan ceros decimales innecesarios sin cambiar los valores almacenados.
+
+El menú móvil mantiene el foco dentro de sus enlaces, bloquea la interacción con el contenido cubierto y devuelve el foco al botón de apertura al cerrar con Escape. Al pasar a escritorio libera el contenido. La página actual se identifica también con aria-current.
+
+Al restaurar una página desde el historial, los formularios recuperan sus botones y eliminan el estado de procesamiento y la copia temporal de la acción enviada. La prueba de navegador comprueba búsqueda, moneda, foco circular del menú y recuperación mediante el evento pageshow del navegador, además del recorrido operativo existente.
+
 Verificación del 12 de octubre de 2026: solución Release con 0 errores y 0 advertencias; 110 comprobaciones existentes de WinForms/Negocio/concurrencia y 119 comprobaciones HTTP web correctas. Las pruebas SQL 01–03 pasaron en las bases temporales. El recorrido de Edge pasó con 45 vistas responsive, sin errores JavaScript/consola, y generó la factura PDF. Las bases QA se eliminaron; las 31 tablas y 31 filas originales conservaron su huella de contenido. Esquema confirmado: 31 tablas, 182 columnas, 31 PK de tablas y 43 FK. El comando normal de ejecución inició ambos puertos locales y `/Login` devolvió HTTP 200.
 
 Durante QA se corrigieron el valor del botón al deshabilitarlo durante un POST, el resumen de validación vacío que generaba un estilo inline incompatible con CSP, el foco/visibilidad del menú cerrado y la compresión de columnas de inventario en móvil. Las capturas revisadas incluyen formularios, listas, documentos y vistas móviles; la prueba automatizada complementa esa inspección visual.

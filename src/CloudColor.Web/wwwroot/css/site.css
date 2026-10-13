@@ -14,5 +14,6 @@
 @media print{.print-page{padding:0;background:white}.print-tools{display:none}.invoice-paper{padding:0;max-width:none}.invoice-paper table{font-size:10pt}.invoice-paper th,.invoice-paper td{padding:10px 7px}.invoice-paper tr{break-inside:avoid}.invoice-paper thead{display:table-header-group}.invoice-paper .detail-total{break-inside:avoid}.invoice-header h1{font-size:20pt}@page{margin:18mm}}
 
 .skip-link{opacity:0;pointer-events:none}.skip-link:focus{opacity:1;pointer-events:auto}
+.search{flex-wrap:wrap}.search input{flex:1 1 150px}.search>.text-button{font-size:11px}.menu-open{overflow:hidden}.table-wrap:focus-visible{outline:3px solid #8583d9;outline-offset:-3px}
 .inventory-filters~.table-wrap table{min-width:1100px}.inventory-filters~.table-wrap td:nth-child(4){min-width:150px}.inventory-filters~.table-wrap td:nth-child(5){white-space:nowrap}
 @media(max-width:900px){.sidebar{visibility:hidden}.menu-open .sidebar{visibility:visible}}

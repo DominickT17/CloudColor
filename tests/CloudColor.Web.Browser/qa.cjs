@@ -14,6 +14,17 @@ const output=path.join(process.env.TEMP||process.env.TMPDIR||'.','CloudColor-Web
  const shot=async name=>{await p.screenshot({path:path.join(output,name+'.png'),fullPage:true});};
  const postClick=async name=>{console.log('Accion: '+name);await p.getByRole('button',{name,exact:true}).click();for(let i=0;i<30&&!new URL(p.url()).pathname.includes('/Ver/');i++)await new Promise(r=>setTimeout(r,100));if(!new URL(p.url()).pathname.includes('/Ver/')){console.log(await p.locator('main').innerText());await shot('error-navegacion');throw new Error('No se guardo: '+name+' '+p.url());}};
  await go('/Login');await shot('01-login');await p.getByLabel('Usuario',{exact:true}).fill('web.gerente');await p.getByLabel('Contraseña',{exact:true}).fill('Prueba-Web-Temporal-2026!');await p.getByRole('button',{name:'Iniciar sesión'}).click();await p.waitForURL('**/Dashboard');
+ await go('/Clientes?buscar=Cliente');await p.getByRole('link',{name:'Limpiar búsqueda',exact:true}).click();await p.waitForURL('**/Clientes');assert.equal(await p.locator('#buscar').inputValue(),'');
+ await go('/Variantes');assert.ok((await p.locator('tbody').innerText()).includes('Q 29.00'));
+ await go('/Clientes/Editar');
+ assert.equal(await p.evaluate(()=>{
+  const form=document.querySelector('form.editor'),button=form.querySelector('button[type=submit]');
+  const label=button.textContent;form.addEventListener('submit',e=>e.preventDefault(),{once:true});
+  form.dispatchEvent(new SubmitEvent('submit',{bubbles:true,cancelable:true,submitter:button}));
+  const busy=button.disabled&&form.getAttribute('aria-busy')==='true';
+  window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}));
+  return busy&&!button.disabled&&button.textContent===label&&!form.hasAttribute('aria-busy');
+ }),true,'restaurar formulario desde historial');
  await go('/Cotizaciones/Nueva');await p.locator('#PersonaId').selectOption({index:1});await p.locator('#NuevaVariante').selectOption({index:1});await p.locator('#NuevaCantidad').fill('0');await p.getByRole('button',{name:'+ Agregar',exact:true}).click();await p.getByRole('alert').filter({hasText:'La cantidad debe ser positiva'}).waitFor();
  await p.locator('#NuevaCantidad').fill('2');await p.getByRole('button',{name:'+ Agregar',exact:true}).click();await p.locator('input[name="Detalle[0].ProductoVarianteID"]').waitFor({state:'attached'});await shot('02-cotizacion-editor');await postClick('Guardar documento');const cotizacion=p.url();await shot('03-cotizacion-detalle');
  await p.getByRole('button',{name:'Confirmar cotización',exact:true}).click();await p.locator('dialog[open]').waitFor();await p.locator('dialog').getByRole('button',{name:'Confirmar',exact:true}).click();await p.getByRole('link',{name:'Facturar cotización'}).waitFor();await p.getByRole('link',{name:'Facturar cotización'}).click();await p.getByRole('button',{name:'Emitir factura',exact:true}).waitFor();await shot('04-facturacion-editor');await postClick('Emitir factura');const factura=p.url();await p.getByRole('link',{name:'Registrar cobro'}).click();const cobro=p.url();await shot('05-cobro');
@@ -23,7 +34,16 @@ const output=path.join(process.env.TEMP||process.env.TMPDIR||'.','CloudColor-Web
  for(const [width,height] of [[1920,1080],[1440,900],[1366,768],[768,1024],[390,844]]){
   await p.setViewportSize({width,height});
   for(const [name,route] of targets){await go(route);await p.waitForTimeout(220);assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`overflow ${name} ${width}`);await shot(`${width}-${name}`);}
-  if(width<=768){await p.getByRole('button',{name:'Abrir navegación',exact:true}).click();await p.waitForTimeout(220);assert.equal(await p.locator('.menu-toggle').getAttribute('aria-expanded'),'true');await p.keyboard.press('Escape');assert.equal(await p.locator('.menu-toggle').getAttribute('aria-expanded'),'false');}
+  if(width<=768){
+   await p.getByRole('button',{name:'Abrir navegación',exact:true}).click();await p.waitForTimeout(220);
+   assert.equal(await p.locator('.menu-toggle').getAttribute('aria-expanded'),'true');
+   assert.equal(await p.locator('.app-shell').evaluate(e=>e.inert),true);
+   await p.keyboard.press('Shift+Tab');assert.equal(await p.evaluate(()=>document.activeElement===document.querySelector('.sidebar a:last-of-type.nav-link')),true);
+   await p.keyboard.press('Tab');assert.equal(await p.evaluate(()=>document.activeElement===document.querySelector('.sidebar a')),true);
+   await p.keyboard.press('Escape');assert.equal(await p.locator('.menu-toggle').getAttribute('aria-expanded'),'false');
+   assert.equal(await p.locator('.app-shell').evaluate(e=>e.inert),false);
+   assert.equal(await p.evaluate(()=>document.activeElement===document.querySelector('.menu-toggle')),true);
+  }
  }
  await p.setViewportSize({width:1440,height:900});await go('/Clientes');await p.getByRole('button',{name:'Desactivar',exact:true}).first().click();await p.locator('dialog[open]').waitFor();await p.locator('dialog').getByRole('button',{name:'Cancelar',exact:true}).click();assert.equal(await p.locator('dialog[open]').count(),0);
  await go(new URL(factura).pathname.replace('/Ver/','/Imprimir/'));await shot('10-factura-impresion');await p.pdf({path:path.join(output,'factura-qa.pdf'),format:'A4',printBackground:true});

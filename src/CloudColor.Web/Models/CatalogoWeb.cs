@@ -22,6 +22,8 @@ public sealed class CatalogoWeb
     {
         string v=Valor(o,f.Nombre);
         if(f.Tipo=="checkbox") return v=="True" ? "Sí" : "No";
+        if(f.Tipo is "money" or "quantity" && decimal.TryParse(v,NumberStyles.Number,CultureInfo.InvariantCulture,out var numero))
+            return f.Tipo=="money" ? "Q "+numero.ToString("N2",CultureInfo.GetCultureInfo("es-GT")) : numero.ToString("0.####",CultureInfo.GetCultureInfo("es-GT"));
         return f.Opciones?.FirstOrDefault(x=>x.Valor==v)?.Texto ?? (v=="" ? "—" : v);
     }
 }
