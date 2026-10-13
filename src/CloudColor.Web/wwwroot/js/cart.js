@@ -19,10 +19,10 @@
    });
    cart.querySelectorAll('[data-cart-count]').forEach(e=>e.textContent=rows.length);cart.querySelectorAll('[data-cart-total]').forEach(e=>e.textContent=money(cents/100));cart.querySelector('.cart-empty').hidden=rows.length>0;cart.querySelector('[value=Guardar]').disabled=rows.length===0;
   }
-  tbody.addEventListener('input',()=>{cart.dataset.dirty='true';refresh();});
+  tbody.addEventListener('input',()=>{cart.dataset.dirty='true';refresh();cart.querySelectorAll('[data-cart-total]').forEach(ccPulse);});
   cart.addEventListener('submit',event=>{
    const action=event.submitter?.value;if(action!=='Agregar'&&!action?.startsWith('Quitar:'))return;event.preventDefault();
-   if(action.startsWith('Quitar:')){tbody.rows[Number(action.split(':')[1])]?.remove();cart.dataset.dirty='true';refresh();return;}
+   if(action.startsWith('Quitar:')){const row=tbody.rows[Number(action.split(':')[1])];if(row){row.querySelectorAll('button').forEach(b=>b.disabled=true);const remove=()=>{row.remove();cart.dataset.dirty='true';refresh();};if(matchMedia('(prefers-reduced-motion: reduce)').matches)remove();else{const animation=row.animate([{opacity:1},{opacity:0}],{duration:140});animation.finished.then(remove);}}return;}
    const option=select.selectedOptions[0],q=Number(cart.querySelector('#NuevaCantidad').value),p=Number(cart.querySelector('#NuevoPrecio').value);
    if(!option||select.value==='0'){ccToast('Selecciona una variante disponible.','error');select.focus();return;}
    if(!Number.isFinite(q*p)||q<=0||p<0){ccToast('La cantidad debe ser positiva y el precio no negativo.','error');return;}
@@ -33,7 +33,7 @@
     const cell=node('td');cell.dataset.label=label;const field=input('Detalle[0].'+name,value,'number',label+' '+option.dataset.sku);field.className=cls;field.min=min;field.step=step;field.required=true;cell.append(field);row.append(cell);
    }
    const subtotal=node('td','', 'cart-subtotal');subtotal.dataset.label='Subtotal';row.append(subtotal);
-   const actionCell=node('td');actionCell.dataset.label='Acción';const remove=node('button','Quitar','text-button');remove.type='submit';remove.name='accion';remove.value='Quitar:0';remove.formNoValidate=true;remove.setAttribute('aria-label','Quitar '+option.dataset.sku);actionCell.append(remove);row.append(actionCell);tbody.append(row);cart.dataset.dirty='true';refresh();ccToast('Variante agregada al borrador.','info');
+   const actionCell=node('td');actionCell.dataset.label='Acción';const remove=node('button','Quitar','text-button');remove.type='submit';remove.name='accion';remove.value='Quitar:0';remove.formNoValidate=true;remove.setAttribute('aria-label','Quitar '+option.dataset.sku);actionCell.append(remove);row.append(actionCell);tbody.append(row);ccPulse(row);cart.dataset.dirty='true';refresh();ccToast('Variante agregada al borrador.','info');
   });
   cart.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('#NuevaCantidad,#NuevoPrecio,#buscar-variante')){e.preventDefault();cart.requestSubmit(cart.querySelector('[value=Agregar]'));}});refresh();
  }
@@ -44,7 +44,7 @@
   if(paid){payment.querySelectorAll('input:not([type=hidden]),select').forEach(i=>i.disabled=true);payment.querySelector('.payment-empty p').textContent='El pago ya está registrado. Consulta los medios en el detalle de la factura.';}
   function refresh(){let cents=0;[...body.rows].forEach((row,index)=>{row.querySelectorAll('input[name^="Pagos["]').forEach(i=>i.name=i.name.replace(/Pagos\[\d+\]/,'Pagos['+index+']'));const amount=Number(row.querySelector('.payment-amount').value);if(Number.isFinite(amount))cents+=Math.round(amount*100);row.querySelector('button').value='Quitar:'+index;});
    payment.querySelector('[data-distributed]').textContent=money(cents/100);payment.querySelector('[data-remaining]').textContent=money((remaining-cents)/100);
-   const state=payment.querySelector('[data-payment-state]');state.textContent=paid?'Factura pagada · no tiene saldo pendiente.':cents>remaining?'El importe supera el pendiente.':cents===remaining&&body.rows.length?'Listo para cobrar':'Pendiente de distribuir '+money((remaining-cents)/100);state.className='alert '+(cents>remaining?'error':cents===remaining?'success':'info');payment.querySelector('[value=Cobrar]').disabled=payment.dataset.payment!=='PENDIENTE_PAGO'||cents!==remaining||!body.rows.length;payment.querySelector('.payment-empty').hidden=body.rows.length>0;
+   const state=payment.querySelector('[data-payment-state]');state.textContent=paid?'Factura pagada · no tiene saldo pendiente.':cents>remaining?'El monto distribuido supera el total de la factura.':cents===remaining&&body.rows.length?'✓ Listo para cobrar':'Pendiente de distribuir '+money((remaining-cents)/100);state.className='alert '+(cents>remaining?'error':cents===remaining?'success':'info');payment.querySelector('[value=Cobrar]').disabled=payment.dataset.payment!=='PENDIENTE_PAGO'||cents!==remaining||!body.rows.length;payment.querySelector('.payment-empty').hidden=body.rows.length>0;
    const draft=Number(payment.querySelector('#NuevoMonto').value);payment.querySelector('[data-payment-preview]').textContent=paid?'No se permiten nuevos cobros para esta factura.':draft>0?'Con este medio quedaría '+money((remaining-cents)/100-draft)+(Math.round(draft*100)+cents>remaining?' · El monto excede el pendiente.':' por distribuir antes de confirmar.'):'Agrega los medios necesarios para cubrir el total.';
   }
   body.addEventListener('input',()=>{payment.dataset.dirty='true';refresh();});payment.querySelector('#NuevoMonto').addEventListener('input',refresh);

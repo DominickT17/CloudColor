@@ -93,6 +93,7 @@ document.querySelectorAll('.table-wrap table').forEach((table,index)=>{
  const filter=()=>{
   const term=normalize(input.value);let count=0;
   data.forEach(item=>{item.row.hidden=!item.text.includes(term)||Boolean(state?.value&&item.state!==state.value);if(!item.row.hidden)count++;});
+  if(window.ccPulse)ccPulse(table.tBodies[0]);
   counter.textContent=count===0?'Sin coincidencias en los resultados cargados.':`${count} de ${rows.length} registros visibles`;
   reset.disabled=!input.value&&!state?.value;
   chips.replaceChildren();
