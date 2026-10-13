@@ -32,11 +32,6 @@ window.addEventListener('pageshow',()=>{
  document.querySelectorAll('[data-submitter-copy]').forEach(input=>input.remove());
  menu(false,false);
 });
-const dialog=document.querySelector('#confirmar');
-document.addEventListener('submit',e=>{const form=e.target;if(!(form instanceof HTMLFormElement)||form.method.toLowerCase()!=='post'||form.closest('dialog'))return;
-if(form.dataset.confirm&&!form.dataset.confirmed&&dialog){e.preventDefault();document.querySelector('#confirmar-texto').textContent=form.dataset.confirm;dialog.showModal();dialog.addEventListener('close',()=>{if(dialog.returnValue==='confirmar'){form.dataset.confirmed='true';form.requestSubmit();}},{once:true});return;}
-if(e.submitter?.name){const h=document.createElement('input');h.type='hidden';h.name=e.submitter.name;h.value=e.submitter.value;h.dataset.submitterCopy='true';form.append(h);}
-form.setAttribute('aria-busy','true');form.querySelectorAll('button[type=submit]').forEach(b=>{pendingButtons.set(b,{html:b.innerHTML,disabled:b.disabled});b.disabled=true;b.textContent='Procesando…';});});
 
 document.querySelector('#NuevaVariante')?.addEventListener('change',e=>{if(e.target.dataset.suggestPrice==='true'){const price=e.target.selectedOptions[0]?.dataset.precio;if(price)document.querySelector('#NuevoPrecio').value=price;}});
 document.querySelector('#imprimir')?.addEventListener('click',()=>window.print());
@@ -93,12 +88,15 @@ document.querySelectorAll('.table-wrap table').forEach((table,index)=>{
  const reset=document.createElement('button');reset.type='button';reset.className='text-button';reset.textContent='Restablecer filtros';bar.append(reset);
  const counter=document.createElement('span');counter.className='table-count';counter.setAttribute('role','status');counter.setAttribute('aria-live','polite');bar.append(counter);
  table.closest('.table-wrap').before(bar);
+ const chips=document.createElement('div');chips.className='filter-chips local-chips';bar.append(chips);
  const data=rows.map(row=>({row,text:normalize(row.textContent),state:row.querySelector('.badge')?.textContent.replace('•','').trim()}));
  const filter=()=>{
   const term=normalize(input.value);let count=0;
   data.forEach(item=>{item.row.hidden=!item.text.includes(term)||Boolean(state?.value&&item.state!==state.value);if(!item.row.hidden)count++;});
   counter.textContent=count===0?'Sin coincidencias en los resultados cargados.':`${count} de ${rows.length} registros visibles`;
   reset.disabled=!input.value&&!state?.value;
+  chips.replaceChildren();
+  for(const [label,clear] of [[input.value,()=>input.value=''],[state?.value,()=>state.value='']]){if(!label)continue;const chip=document.createElement('button');chip.type='button';chip.className='filter-chip';chip.textContent=label+' ×';chip.setAttribute('aria-label','Quitar filtro visible '+label);chip.addEventListener('click',()=>{clear();filter();});chips.append(chip);}
  };
  input.addEventListener('input',filter);state?.addEventListener('change',filter);
  reset.addEventListener('click',()=>{input.value='';if(state)state.value='';filter();input.focus();});filter();
