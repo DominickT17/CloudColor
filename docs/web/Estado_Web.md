@@ -102,6 +102,12 @@ Al terminar, crear el archivo `.stop` exacto que imprime la suite para cerrar Ke
 
 ### Refinamiento de usabilidad
 
+Las tablas de listados e inventario incorporan un filtro inmediato de los resultados cargados, selector de estado, contador visible, restablecimiento y ordenación por encabezados de texto o importes. La búsqueda original sigue consultando el servidor; el filtro inmediato solo reduce lo que ya se recibió. Las fechas mantienen el orden original para evitar ordenar cronología como texto. Estos controles no guardan cambios ni solicitan permisos adicionales.
+
+En cotizaciones, facturas directas y compras se muestra el subtotal provisional al escribir cantidad y precio/costo. La línea solo se incorpora al pulsar Agregar; el total definitivo sigue calculándose en Negocio. Las contraseñas tienen Mostrar/Ocultar y aviso de Bloq Mayús; se ocultan nuevamente cuando el navegador restaura la página.
+
+Prueba adicional, con la suite temporal `--visual` abierta: `npm run test:interactividad --prefix tests/CloudColor.Web.Browser`. Comprueba controles de contraseña, filtros con y sin coincidencias, orden ascendente/descendente, subtotal reactivo y 20 vistas en cinco tamaños. Las capturas quedan en `%TEMP%\CloudColor-Web-Interactividad`. Este recorrido no escribe registros de negocio.
+
 Los catálogos muestran acciones específicas como Crear cliente, permiten limpiar la búsqueda y conservan el filtro al abrir el alta. Los importes muestran Q y dos decimales; las cantidades eliminan ceros decimales innecesarios sin cambiar los valores almacenados.
 
 El menú móvil mantiene el foco dentro de sus enlaces, bloquea la interacción con el contenido cubierto y devuelve el foco al botón de apertura al cerrar con Escape. Al pasar a escritorio libera el contenido. La página actual se identifica también con aria-current.
