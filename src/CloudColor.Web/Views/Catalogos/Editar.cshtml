@@ -1,0 +1,12 @@
+@model EditorCatalogo
+@{var c=Model.Catalogo;ViewData["Title"]=(Model.Id==0?"Nuevo registro":"Editar registro")+" · "+c.Titulo;}
+<a class="breadcrumb" href="/@c.Ruta?buscar=@Uri.EscapeDataString(Model.Buscar??"")">← @c.Titulo</a><div class="page-heading"><div><span class="eyebrow">INFORMACIÓN DEL REGISTRO</span><h1>@(Model.Id==0?"Crear":"Editar") @c.Singular</h1><p>Completa los datos. Los campos con * son obligatorios.</p></div></div>
+<form method="post" class="card editor" action="/@c.Ruta/Editar/@Model.Id">@Html.AntiForgeryToken()<input type="hidden" name="buscar" value="@Model.Buscar"/>@if(!ViewData.ModelState.IsValid){<div asp-validation-summary="All" class="validation" role="alert"></div>}<h2>Información general</h2><div class="form-grid">
+@foreach(var f in c.Campos){string valor=Model.Valores.GetValueOrDefault(f.Nombre)??"";<div class="field @(f.Tipo=="textarea"?"wide":"")"><label for="@f.Nombre">@f.Etiqueta @(f.Requerido?"*":"")</label>
+@if(f.Tipo=="select"){<select id="@f.Nombre" name="@f.Nombre" required="@f.Requerido"><option value="">@(f.Requerido?"Selecciona una opción":"Sin color")</option>@foreach(var op in f.Opciones!){<option value="@op.Valor" selected="@(op.Valor==valor)">@op.Texto</option>}</select>}
+else if(f.Tipo=="textarea"){<textarea id="@f.Nombre" name="@f.Nombre" maxlength="@f.Maximo" rows="3">@valor</textarea>}
+else if(f.Tipo=="checkbox"){<label class="switch-label"><input id="@f.Nombre" name="@f.Nombre" type="checkbox" value="true" checked="@(valor is "True" or "true" or "on")"/> Sí</label>}
+else{<input id="@f.Nombre" name="@f.Nombre" value="@valor" type="@(f.Tipo is "money" or "quantity"?"number":f.Tipo=="readonly"?"text":f.Tipo)" step="@(f.Tipo=="quantity"?"0.0001":"0.01")" min="@(f.Tipo is "money" or "quantity"?"0":null)" maxlength="@f.Maximo" required="@f.Requerido" readonly="@(f.Tipo=="readonly")"/>}
+@Html.ValidationMessage(f.Nombre,null,new{@class="field-error"})</div>}
+@if(c.Ruta=="Usuarios"){<div class="field"><label for="Password">Contraseña @(Model.Id==0?"*":"(opcional)")</label><input id="Password" name="Password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required="@(Model.Id==0)"/><small>12–128 caracteres. Al editar, vacía conserva la contraseña actual.</small></div>}
+</div><div class="form-actions"><a class="button" href="/@c.Ruta?buscar=@Uri.EscapeDataString(Model.Buscar??"")">Cancelar</a><button class="button primary" type="submit">Guardar cambios</button></div></form>
