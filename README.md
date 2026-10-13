@@ -178,3 +178,23 @@ Gerente conserva administración de Fase I y puede consultar y operar Fase II. D
 Fase I conserva sus funcionalidades y sus 49 comprobaciones de regresión. El documento `docs/fase1/Estado_Fase1.md` describe la entrega histórica previa a su integración; el estado actual de Fase II está en [Estado_Fase2.md](docs/fase2/Estado_Fase2.md).
 
 Build Release sin errores ni advertencias; instalación 00–11, pruebas SQL, integración WinForms y concurrencia verificadas en una base desechable. Los datos reales locales se conservaron. La rama feat/fase2 requiere revisión humana y todavía no se ha integrado a main.
+
+## Interfaz web
+
+La rama `feat/web-ui` agrega `src/CloudColor.Web`, presentación ASP.NET Core 9 MVC/Razor que reutiliza Negocio, Entidades, Datos y los objetos SQL de Fase I/II. WinForms permanece en la solución; el modelo de 31 tablas no cambia.
+
+```powershell
+cd C:\Users\domin\Documents\CloudColor
+dotnet run --project .\src\CloudColor.Web
+```
+
+Abrir **https://localhost:7255** (certificado de desarrollo confiable requerido) o **http://localhost:5255** para desarrollo local. Usar una cuenta existente de CloudColorDB. Si no existe ninguna, completar primero la configuración inicial en WinForms. No se requiere reinstalar la base para abrir la web.
+
+Incluye Dashboard, catálogos, inventario, compras, recepciones, cotizaciones, facturación, impresión, cobros y administración según Digitador/Cajero/Gerente. Cookie protegida de 30 minutos, revalidación de permisos por solicitud y antiforgery en POST. La contraseña original nunca se envía a SQL Server.
+
+```powershell
+dotnet build src/CloudColor.sln -c Release --nologo -warnaserror
+dotnet run --project tests/CloudColor.Web.Pruebas -c Release --no-build
+```
+
+La suite web utiliza una base QA desechable y el puerto 5256; comprueba que los datos originales se conserven. Ejecución, permisos, rutas, pruebas de navegador, capturas y límites se describen en [Estado_Web.md](docs/web/Estado_Web.md). No se realizó merge ni publicación externa.
