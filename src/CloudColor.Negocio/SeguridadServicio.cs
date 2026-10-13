@@ -23,6 +23,13 @@ public sealed class SeguridadServicio(SeguridadDatos datos)
         if(c.Rol is not ("Gerente" or "Digitador" or "Cajero")) throw new ArgumentException("Rol no habilitado.");
         return sesion=new Sesion(c.UsuarioID,c.NombreUsuario,c.Rol);
     }
+    // Solo para una identidad previamente autenticada por el host (cookie protegida).
+    // Nunca debe exponerse como login por ID ni recibir el actor desde un formulario.
+    public Sesion RestaurarSesionValidada(int usuarioId)
+    {
+        sesion=datos.SesionActual(usuarioId);
+        return Actual();
+    }
     public void CerrarSesion() => sesion=null;
     public Sesion Actual()
     {
