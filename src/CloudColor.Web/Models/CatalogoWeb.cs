@@ -31,4 +31,6 @@ public sealed record ListadoCatalogo(CatalogoWeb Catalogo,List<object> Filas,str
 public sealed record EditorCatalogo(CatalogoWeb Catalogo,int Id,Dictionary<string,string> Valores,string? Buscar);
 public sealed record Metrica(string Nombre,string Valor,string Nota,string Ruta);
 public sealed record Actividad(string Tipo,string Numero,string Persona,string Estado,DateTime Fecha,string Ruta);
-public sealed record DashboardVm(List<Metrica> Metricas,List<Actividad> Actividad);
+public sealed record Barra(string Nombre,int Cantidad,string Ruta);
+public sealed record Grafico(string Titulo,string Nota,List<Barra> Barras);
+public sealed record DashboardVm(List<Metrica> Metricas,List<Actividad> Actividad,List<Grafico> Graficos);
