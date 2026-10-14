@@ -14,16 +14,18 @@ public sealed class OperacionesController(Aplicacion app):Controller
     private static DocumentoFila Fila(OrdenCompra o)=>new(o.OrdenCompraID,o.NumeroOrden,o.Proveedor,o.Fecha,o.Estado);
     private static string Numero(string p)=>p+"-"+DateTime.Now.ToString("yyyyMMddHHmmssfff");
     [Authorize(Roles=Ingreso),HttpGet("/Cotizaciones"),HttpGet("/Compras"),HttpGet("/Recepciones")]
-    public IActionResult Listar(string? buscar)
+    public IActionResult Listar(string? buscar,string? estado)
     {
         var ruta=Ruta;var filas=ruta=="Cotizaciones" ? app.Fase2.Cotizaciones(buscar).Select(Fila).ToList() : app.Fase2.Ordenes(buscar).Select(Fila).ToList();
+        if(!string.IsNullOrWhiteSpace(estado))filas=filas.Where(x=>x.Estado==estado).ToList();
         return View("Lista",new DocumentosVm(ruta,ruta=="Compras"?"Órdenes de compra":ruta,ruta=="Cotizaciones"?"De una propuesta clara a la próxima venta.":ruta=="Recepciones"?"Selecciona una orden para consultar sus entregas o registrar un ingreso.":"Tu abastecimiento, desde la orden hasta la última entrega.",filas,buscar,ruta!="Recepciones"));
     }
     [HttpGet("/Facturas"),HttpGet("/Cobros")]
-    public IActionResult Facturas(string? buscar)
+    public IActionResult Facturas(string? buscar,string? estado)
     {
         if(Ruta=="Cobros"&&!User.IsInRole("Cajero")&&!User.IsInRole("Gerente"))return Forbid();
         var f=app.Fase2.Facturas(buscar);if(Ruta=="Cobros")f=f.Where(x=>x.Estado=="PENDIENTE_PAGO").ToList();
+        if(!string.IsNullOrWhiteSpace(estado))f=f.Where(x=>x.Estado==estado).ToList();
         return View("Lista",new DocumentosVm(Ruta,Ruta,Ruta=="Cobros"?"Facturas pendientes. Distribuye el total y completa el cobro.":"Cada venta, su detalle y su estado en un mismo lugar.",f.Select(Fila).ToList(),buscar,Ruta=="Facturas"&&!User.IsInRole("Cajero")));
     }
     private EditorDocumentoVm Editor(string ruta,DocumentoInput input)
@@ -41,7 +43,8 @@ public sealed class OperacionesController(Aplicacion app):Controller
             var v=variantes.SingleOrDefault(x=>x.ProductoVarianteID==l.ProductoVarianteID);
             l.CodigoSKU=v?.CodigoSKU??"No disponible";l.Producto=v?.Producto??"Variante no habilitada";l.Presentacion=v?.Presentacion??"";l.Color=v?.Color;
         }
-        return new(ruta,ruta=="Compras"?"Nueva orden de compra":ruta=="Facturas"?"Nueva factura":"Nueva cotización",input,personas,variantes);
+        var disponible=ruta=="Compras"?new Dictionary<int,decimal>():app.Fase2.Inventario().GroupBy(x=>x.ProductoVarianteID).ToDictionary(x=>x.Key,x=>x.Sum(l=>l.CantidadDisponible));
+        return new(ruta,ruta=="Compras"?"Nueva orden de compra":ruta=="Facturas"?"Nueva factura":"Nueva cotización",input,personas,variantes,disponible);
     }
     [Authorize(Roles=Ingreso),HttpGet("/Cotizaciones/Nueva"),HttpGet("/Compras/Nueva"),HttpGet("/Facturas/Nueva")]
     public IActionResult Nueva(int? cotizacion)
@@ -114,6 +117,13 @@ public sealed class OperacionesController(Aplicacion app):Controller
         var detalle=app.Fase2.OrdenDetalle(id);
         return View("Recepcion",new RecepcionVm(o,detalle,app.Fase2.Ubicaciones().Where(x=>x.Activo&&x.BodegaActiva).ToList(),new RecepcionInput{Numero=Numero("RC"),Lineas=detalle.Where(x=>x.CantidadPendiente>0).Select(x=>new RecibirLinea{DetalleOrdenCompraID=x.DetalleOrdenCompraID,CantidadRecibida=x.CantidadPendiente,CostoUnitario=x.CostoUnitarioOrden}).ToList()}));
     }
+    [Authorize(Roles=Ingreso),HttpGet("/Recepciones/Detalle/{id:int}")]
+    public IActionResult DetalleRecepcion(int id,int orden)
+    {
+        var o=app.Fase2.Ordenes().SingleOrDefault(x=>x.OrdenCompraID==orden);if(o==null)return NotFound();
+        var lineas=app.Fase2.Recepciones(orden).Where(x=>x.RecepcionCompraID==id).ToList();if(lineas.Count==0)return NotFound();
+        return View(new RecepcionDetalleVm(o,lineas,app.Fase2.OrdenDetalle(orden)));
+    }
     [Authorize(Roles=Ingreso),HttpPost("/Recepciones/Nueva/{id:int}")]
     public IActionResult Recibir(int id,RecepcionInput input)
     {
@@ -131,7 +141,7 @@ public sealed class OperacionesController(Aplicacion app):Controller
     private IActionResult PantallaCobro(int id,CobroInput input)
     {
         var f=app.Fase2.Facturas().SingleOrDefault(x=>x.FacturaID==id);if(f==null)return NotFound();
-        return View("Cobro",new CobroVm(f,app.Fase2.FacturaPagos(id),app.Fase2.Medios(),input));
+        return View("Cobro",new CobroVm(f,app.Fase2.FacturaPagos(id),app.Fase2.Medios(),input,app.Fase2.FacturaDetalle(id)));
     }
     [Authorize(Roles=CobrarRoles),HttpPost("/Cobros/Registrar/{id:int}")]
     public IActionResult Cobrar(int id,CobroInput input,string? accion)
@@ -152,11 +162,13 @@ public sealed class OperacionesController(Aplicacion app):Controller
         return PantallaCobro(id,input);
     }
     [Authorize(Roles=Ingreso),HttpGet("/Inventario")]
-    public IActionResult Inventario(string? buscar,int? variante,int? bodega,string? estado)
+    public IActionResult Inventario(string? buscar,int? variante,int? bodega,string? estado,int? ubicacion)
     {
         var variantes=app.Fase2.Variantes();var bodegas=app.Fase2.Bodegas();var ubicaciones=app.Fase2.Ubicaciones();var inventario=app.Fase2.Inventario();
         var totales=inventario.GroupBy(x=>x.ProductoVarianteID).ToDictionary(x=>x.Key,x=>x.Sum(l=>l.CantidadDisponible));
-        var filas=inventario.Select(x=>new InventarioFila(x,totales[x.ProductoVarianteID],variantes.Single(v=>v.ProductoVarianteID==x.ProductoVarianteID).StockMinimo)).Where(x=>(string.IsNullOrWhiteSpace(buscar)||x.Lote.Producto.Contains(buscar,StringComparison.OrdinalIgnoreCase)||x.Lote.CodigoSKU.Contains(buscar,StringComparison.OrdinalIgnoreCase))&&(!variante.HasValue||x.Lote.ProductoVarianteID==variante)&&(!bodega.HasValue||ubicaciones.Any(u=>u.UbicacionID==x.Lote.UbicacionID&&u.BodegaID==bodega))&&(string.IsNullOrEmpty(estado)||x.Estado==estado)).ToList();
-        return View(new InventarioVm(filas,variantes,bodegas,buscar,variante,bodega,estado));
+        var filas=inventario.Select(x=>new InventarioFila(x,totales[x.ProductoVarianteID],variantes.Single(v=>v.ProductoVarianteID==x.ProductoVarianteID).StockMinimo)).Where(x=>(string.IsNullOrWhiteSpace(buscar)||x.Lote.Producto.Contains(buscar,StringComparison.OrdinalIgnoreCase)||x.Lote.CodigoSKU.Contains(buscar,StringComparison.OrdinalIgnoreCase))&&(!variante.HasValue||x.Lote.ProductoVarianteID==variante)&&(!bodega.HasValue||ubicaciones.Any(u=>u.UbicacionID==x.Lote.UbicacionID&&u.BodegaID==bodega))&&(string.IsNullOrEmpty(estado)||x.Estado==estado||(estado=="Disponible"&&x.Lote.CantidadDisponible>0))).ToList();
+        if(ubicacion.HasValue)filas=filas.Where(x=>x.Lote.UbicacionID==ubicacion).ToList();
+        var sinIngresos=variantes.Where(v=>!totales.ContainsKey(v.ProductoVarianteID)&&(!variante.HasValue||v.ProductoVarianteID==variante)&&(string.IsNullOrWhiteSpace(buscar)||v.Producto.Contains(buscar,StringComparison.OrdinalIgnoreCase)||v.CodigoSKU.Contains(buscar,StringComparison.OrdinalIgnoreCase))&&!bodega.HasValue&&!ubicacion.HasValue&&(string.IsNullOrEmpty(estado)||estado=="Sin stock")).ToList();
+        return View(new InventarioVm(filas,variantes,bodegas,buscar,variante,bodega,estado,ubicaciones,ubicacion,sinIngresos,variantes.Count(v=>totales.GetValueOrDefault(v.ProductoVarianteID)>0&&totales.GetValueOrDefault(v.ProductoVarianteID)<v.StockMinimo),variantes.Count(v=>totales.GetValueOrDefault(v.ProductoVarianteID)<=0)));
     }
 }

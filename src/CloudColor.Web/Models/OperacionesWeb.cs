@@ -14,7 +14,7 @@ public sealed class DocumentoInput
     public decimal NuevaCantidad {get;set;}=1;
     public decimal NuevoPrecio {get;set;}
 }
-public sealed record EditorDocumentoVm(string Ruta,string Titulo,DocumentoInput Input,List<Opcion> Personas,List<ProductoVariante> Variantes);
+public sealed record EditorDocumentoVm(string Ruta,string Titulo,DocumentoInput Input,List<Opcion> Personas,List<ProductoVariante> Variantes,Dictionary<int,decimal> Disponible);
 public sealed record DetalleDocumentoVm(string Ruta,DocumentoFila Documento,List<LineaVenta> Venta,List<LineaCompra> Compra,List<Pago> Pagos,List<Recepcion> Recepciones,string? Emisor=null,string? NIT=null);
 public sealed class RecepcionInput
 {
@@ -41,9 +41,10 @@ public sealed class CobroInput
     public decimal NuevoMonto {get;set;}
     public string? NuevaReferencia {get;set;}
 }
-public sealed record CobroVm(Factura Factura,List<Pago> Existentes,List<Catalogo> Medios,CobroInput Input);
+public sealed record CobroVm(Factura Factura,List<Pago> Existentes,List<Catalogo> Medios,CobroInput Input,List<LineaVenta> Detalle);
+public sealed record RecepcionDetalleVm(OrdenCompra Orden,List<Recepcion> Lineas,List<LineaCompra> Detalle);
 public sealed record InventarioFila(Existencia Lote,decimal TotalVariante,decimal Minimo)
 {
     public string Estado=>TotalVariante<=0?"Sin stock":TotalVariante<Minimo?"Stock bajo":"Stock normal";
 }
-public sealed record InventarioVm(List<InventarioFila> Filas,List<ProductoVariante> Variantes,List<Bodega> Bodegas,string? Buscar,int? Variante,int? Bodega,string? Estado);
+public sealed record InventarioVm(List<InventarioFila> Filas,List<ProductoVariante> Variantes,List<Bodega> Bodegas,string? Buscar,int? Variante,int? Bodega,string? Estado,List<Ubicacion> Ubicaciones,int? Ubicacion,List<ProductoVariante> SinIngresos,int StockBajo,int SinStock);
