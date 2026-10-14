@@ -7,7 +7,8 @@ const output=path.join(process.env.TEMP||'.','CloudColor-Web-Interactividad');fs
  const browser=await chromium.launch({channel:'msedge',headless:true});
  try{
   const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
-  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+  page.on('dialog',dialog=>dialog.accept());
+ page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
   const go=async route=>assert.equal((await page.goto('http://localhost:5256'+route)).status(),200);
   await go('/Login');await page.getByLabel('Contraseña',{exact:true}).fill('Prueba-Web-Temporal-2026!');
   await page.getByRole('button',{name:'Mostrar contraseña',exact:true}).click();assert.equal(await page.locator('#password').getAttribute('type'),'text');

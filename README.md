@@ -198,3 +198,5 @@ dotnet run --project tests/CloudColor.Web.Pruebas -c Release --no-build
 ```
 
 La suite web utiliza una base QA desechable y el puerto 5256; comprueba que los datos originales se conserven. Ejecución, permisos, rutas, pruebas de navegador, capturas y límites se describen en [Estado_Web.md](docs/web/Estado_Web.md). No se realizó merge ni publicación externa.
+
+La interfaz incorpora búsqueda global por perfil (Alt+K), notificaciones, confirmaciones, protección de cambios sin guardar, vistas rápidas y filtros con chips. Cotizaciones, facturas directas y compras permiten editar el detalle sin recargar; Cobros calcula la distribución al instante. Dashboard muestra estados reales, Inventario distingue variantes sin ingresos y las tablas se convierten en tarjetas en móvil. Con QA `--visual` abierto, `npm run test:ux --prefix tests/CloudColor.Web.Browser` valida estos recorridos y genera capturas en cinco tamaños.

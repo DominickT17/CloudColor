@@ -57,7 +57,7 @@ Los catálogos permiten búsqueda, alta, edición y activación/desactivación s
 - Dashboard calcula indicadores y actividad reciente a partir de consultas existentes. Cajero ve únicamente información de facturas autorizada. Las existencias son una suma de unidades entre variantes; no representan valor monetario.
 - Cotizaciones utiliza detalle tipo carrito, confirmación y factura posterior. Al facturar se recuperan el cliente y los precios históricos desde la cotización, sin confiar en campos ocultos enviados por el navegador.
 - Compras carga únicamente variantes asociadas al proveedor. Su detalle muestra solicitado, recibido, pendiente y progreso. Recepciones selecciona ubicación agrupada por bodega, cantidad, costo real, lote proveedor y vencimiento; SQL impide exceder lo pendiente.
-- Inventario muestra lotes, SKU, presentación, color, bodega, ubicación, fecha, disponible y costo. Filtros por texto, variante, bodega y estado. Stock bajo compara el total global de la variante con StockMinimo, aunque se filtre una bodega. Variantes sin ningún ingreso no tienen fila de lote; los lotes agotados sí muestran sin stock.
+- Inventario muestra lotes, SKU, presentación, color, bodega, ubicación, fecha, disponible y costo. Filtros por texto, variante, bodega, ubicación y estado. Stock bajo compara el total global de la variante con StockMinimo, aunque se filtre una bodega. Variantes sin ningún ingreso aparecen en tarjetas separadas sin inventar lotes ni ubicaciones; se omiten al filtrar una bodega o ubicación porque todavía no pertenecen a ninguna.
 - Factura directa o desde cotización reutiliza transacciones y PEPS existentes. La web no selecciona manualmente los lotes de salida. Impresión usa una vista limpia y el diálogo del navegador, que permite guardar PDF.
 - Cobros distribuye el importe entre los medios existentes, muestra total/pagado/pendiente y exige el cobro completo conforme a Fase II. SQL rechaza duplicados y referencias obligatorias ausentes.
 
@@ -67,7 +67,7 @@ No se agregaron SP, vistas, funciones, triggers ni TVP. Se reutilizan los objeto
 
 Fondo #F7F8FA, paneles blancos, texto #1F2937, secundarios #6B7280 y bordes #E5E7EB; acento violeta y variables CSS para el tema. Sidebar fija en escritorio y plegable en tablet/móvil. Tarjetas, formularios, tablas, estados vacíos, mensajes y confirmaciones comparten estilos locales.
 
-Labels asociados, foco visible, enlace para saltar al contenido, navegación por teclado, Escape para cerrar navegación, confirmación con dialog nativo y estados con texto además de color. Las tablas anchas permiten desplazamiento interno sin ensanchar la página. Se respeta reducción de movimiento. La revisión realizada no sustituye una auditoría formal con lector de pantalla.
+Labels asociados, foco visible, enlace para saltar al contenido, navegación por teclado, Escape para cerrar navegación, confirmación con dialog nativo y estados con texto además de color. Las tablas anchas permiten desplazamiento interno en escritorio y se convierten en tarjetas con etiquetas en móvil. Se respeta reducción de movimiento. La revisión realizada no sustituye una auditoría formal con lector de pantalla.
 
 ## Pruebas reproducibles
 
@@ -121,3 +121,37 @@ Durante QA se corrigieron el valor del botón al deshabilitarlo durante un POST,
 Capturar Login, Dashboard de Gerente y Cajero, Cliente, Variante, Bodega/Ubicación, carrito de cotización, orden con 75/100 recibidos, recepción parcial, Inventario, factura desde cotización, distribución del cobro y factura imprimible. Añadir las vistas móviles de Dashboard e Inventario, y acceso denegado por perfil. Utilizar datos QA, evitando datos personales o contraseñas.
 
 No se realizó merge ni despliegue público. Queda revisión humana de la experiencia visual y aprobación de integración. Para publicar fuera de localhost se necesita configurar alojamiento, certificado TLS confiable y protección/persistencia de claves Data Protection del entorno. Los listados actuales cargan los resultados de las consultas existentes; la paginación puede evaluarse con volúmenes reales mayores sin alterar el modelo.
+
+### Interacciones y operación reactiva — 13 de octubre de 2026
+
+Los mensajes de éxito, información, advertencia y error utilizan notificaciones reutilizables, con cierre manual y pausa al recibir foco o pasar el cursor. Confirmar cotización, emitir factura, cobrar y registrar recepción usan el mismo diálogo; cancelar deja el formulario intacto. Los POST indican procesamiento y evitan envíos repetidos desde sus botones. Las comprobaciones definitivas permanecen en Negocio y SQL Server.
+
+La cabecera ofrece búsqueda global con Alt+K y menú de sesión. La búsqueda requiere dos caracteres, limita cada grupo a cinco resultados y reutiliza los servicios existentes. Gerente y Digitador consultan clientes, productos, variantes, proveedores, cotizaciones, órdenes y facturas; Cajero solamente facturas. No devuelve contraseñas ni objetos de usuario. Es una búsqueda sobre los listados existentes, no un nuevo índice SQL. Alt+N abre el alta disponible fuera de los campos; Escape cierra diálogos y menú. Los listados incorporan vista rápida lateral con los valores de la fila y enlace al registro completo.
+
+Los formularios detectan cambios y confirman antes de abandonar por un enlace o cerrar sesión. Recargar o cerrar la pestaña usa el aviso nativo obligatorio del navegador. No se guardan borradores ni contraseñas en localStorage. Los errores de campo se actualizan al escribir y al salir del control. Filtros del servidor y filtros locales muestran chips independientes; el usuario puede retirar cada condición o limpiar todas.
+
+Dashboard reutiliza datos actuales para indicadores de stock bajo, sin stock, cotizaciones pendientes y facturas por cobrar. Las barras cuentan órdenes y facturas por estado y enlazan al listado filtrado. La actividad incluye documentos y recepciones reales; las recepciones se consultan en las ocho órdenes más recientes. La fecha del documento es su creación y el estado es el actual: no representa una bitácora de transiciones ni inventa fechas de confirmación/cobro.
+
+Cotizaciones, facturas directas y compras agregan, quitan y editan líneas en memoria sin recargar. La búsqueda de variantes ignora acentos; SKU, presentación, color y disponibilidad ayudan a elegir. El resumen y subtotales son provisionales; Negocio recalcula al guardar y SQL vuelve a comprobar existencias al emitir. Facturar una cotización confirmada mantiene sus líneas y precios históricos sin permitir editarlos. El detalle no persiste hasta Guardar. Cambiar proveedor y cargar variantes conserva el comportamiento de reiniciar el detalle, ahora con confirmación explícita.
+
+Compras muestra porcentaje recibido e historial con enlaces al detalle de cada recepción. Recepciones separa Bodega y Ubicación y anticipa si la cantidad completa o recibe parcialmente una línea. El POST conserva UbicacionID y las validaciones existentes. Inventario agrega resumen global, filtros rápidos Disponible/Stock bajo/Sin stock y contexto de filtros. Los totales de las tarjetas son globales; el contador de filas y unidades corresponde al resultado filtrado.
+
+Cobros presenta detalle de factura, importes distribuidos y saldo pendiente. Permite editar monto/referencia y retirar medios antes de confirmar; detecta duplicados, referencias faltantes y excedentes. Confirmar se habilita al distribuir exactamente el pendiente. Una factura pagada muestra que ya no tiene saldo, deshabilita entradas y conserva el acceso al detalle de sus medios. No cambian las transacciones, PEPS, permisos ni reglas de cobro completo.
+
+Las interacciones se organizan en `site.js` (navegación/tablas), `ux.js` (notificaciones, diálogos, búsqueda y formularios) y `cart.js` (documentos, cobros y recepción). Son JavaScript local sin frameworks, paquetes nuevos de aplicación ni servicios externos. Web continúa llamando a Negocio; no se incorporó SQL en controladores ni vistas.
+
+Con la base temporal `--visual` abierta, ejecutar en orden:
+
+```powershell
+npm test --prefix tests/CloudColor.Web.Browser
+npm run test:interactividad --prefix tests/CloudColor.Web.Browser
+npm run test:ux --prefix tests/CloudColor.Web.Browser
+```
+
+El último recorrido comprueba búsqueda por teclado, cierre con Escape, vista rápida, cancelar/aceptar salida sin guardar, chips, carrito sin recarga, totales editables, notificaciones, cancelación de emisión, cobro con excedente y corrección, factura pagada y detalle de recepción. Genera 55 vistas en 1920×1080, 1440×900, 1366×768, 768×1024 y 390×844, además de cinco capturas operativas. Requiere los datos temporales preparados por el primer recorrido; no usar cuentas ni puertos de la base permanente.
+
+Las capturas de esta revisión están en `%TEMP%\CloudColor-Web-UX\despues`. La carpeta hermana `antes` conserva cinco capturas reales de la versión anterior: Dashboard, Inventario, cotización, compra parcial y cobro. Los conjuntos de datos QA pueden diferir; sirven para comparar presentación, no cifras operativas. Son archivos locales temporales, no se incluyen datos de QA en Git.
+
+Resultado del 13 de octubre de 2026: Release con `-warnaserror`, 0 errores y 0 advertencias. Pasaron 110 comprobaciones WinForms/Negocio/concurrencia, 127 comprobaciones HTTP web y las pruebas SQL 01–03 en bases temporales. En Edge pasaron los recorridos de 45, 20 y 55 vistas responsive (120 verificaciones de página en total), sin errores JavaScript/consola, además del PDF. Se inspeccionaron capturas de escritorio y móvil. Las bases QA se eliminaron y la huella de las 31 tablas y 31 filas originales permaneció intacta.
+
+En esta revisión se corrigieron el cierre con Escape del buscador, el desplazamiento de botones causado por validación tardía y el mensaje de saldo de una factura ya pagada. La prueba UX cubre estas interacciones. No se modificaron DBML, tablas, claves, procedimientos, WinForms, PBKDF2 ni capas de negocio/datos. Quedan la revisión humana de las capturas y una auditoría específica con lector de pantalla; la publicación externa y el merge requieren aprobación independiente.

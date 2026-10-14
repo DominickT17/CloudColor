@@ -54,6 +54,12 @@ internal static partial class Program
         using(var temporal=Cliente())await Login(temporal,"web.temporal");
         await Exito(c,"/Roles/Editar/"+rolDigitador,"/Roles/Editar/"+rolDigitador,new(){{"Nombre","Rol inventado"},{"Descripcion","Descripcion QA"},{"Activo","true"}},"editar descripcion de rol HTTP");
         Check(a.Seguridad.Roles().Single(x=>x.RolID==rolDigitador).Nombre=="Digitador"&&a.Seguridad.Roles().Count==3,"nombre inmutable y exactamente tres roles");
+        string busqueda=await Pagina(c,"/Buscar?q=WEB");Check(busqueda.Contains("Productos")&&busqueda.Contains("Facturas")&&!busqueda.Contains("PasswordHash"),"busqueda global reutiliza servicios sin secretos");
+        string busquedaCajero=await Pagina(cajero,"/Buscar?q=WEB");Check(busquedaCajero.Contains("Facturas")&&!busquedaCajero.Contains("Productos")&&!busquedaCajero.Contains("Clientes")&&!busquedaCajero.Contains("Proveedores"),"busqueda global respeta perfil Cajero");
+        await Pagina(c,"/Inventario?estado=Stock%20bajo&ubicacion="+u);
+        int recepcion=a.Fase2.Recepciones(orden).First().RecepcionCompraID;
+        await Pagina(c,"/Recepciones/Detalle/"+recepcion+"?orden="+orden);
+        string completadas=await Pagina(c,"/Compras?estado=COMPLETA");Check(completadas.Contains("WEB-OC-100"),"enlace de grafico aplica filtro de estado");
         foreach(string ruta in new[]{"/Usuarios","/Roles","/Cobros/Registrar/"+factura}){using var r=await digitador.GetAsync(ruta);Check(r.StatusCode==HttpStatusCode.Redirect&&r.Headers.Location!.ToString().Contains("AccesoDenegado"),"Digitador bloqueado en "+ruta);}
         foreach(string ruta in new[]{"/Compras","/Inventario","/Facturas/Nueva"}){using var r=await cajero.GetAsync(ruta);Check(r.StatusCode==HttpStatusCode.Redirect&&r.Headers.Location!.ToString().Contains("AccesoDenegado"),"Cajero bloqueado en "+ruta);}
         var usuario=a.Seguridad.Usuarios().Single(x=>x.NombreUsuario=="web.digitador");a.Seguridad.ActivarUsuario(usuario.UsuarioID,false);

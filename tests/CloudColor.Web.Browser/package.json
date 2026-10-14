@@ -1,6 +1,6 @@
 {
   "name": "cloudcolor-web-browser-tests",
   "private": true,
-  "scripts": { "test": "node qa.cjs", "test:interactividad": "node interactividad.cjs" },
+  "scripts": { "test": "node qa.cjs", "test:interactividad": "node interactividad.cjs", "test:ux": "node ux.cjs" },
   "devDependencies": { "playwright": "1.62.1" }
 }
