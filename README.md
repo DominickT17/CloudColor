@@ -162,6 +162,8 @@ Incluye la regresión de Nueva marca durante la edición de Producto: cancelar, 
 
 ## Uso de Fase II
 
+La [guía de entrega web de Fase II](docs/fase2/Entrega_Web_Fase2.md) relaciona cada requisito con su pantalla y SP, explica la elección de UDT/TVP y describe la demostración de cotización, facturación directa, cobros, impresión y recepción parcial/completa.
+
 1. Como Digitador o Gerente, preparar Producto en el mantenimiento de Fase I y luego su ProductoVariante con presentación, color opcional, SKU, precio y stock mínimo. Bodegas, ubicaciones y asociaciones proveedor/variante se administran desde sus pantallas.
 2. En Compras y recepciones, seleccionar proveedor y variantes asociadas, cantidades y costos acordados. Guardar la orden y abrir Recibir compra desde Consultar. Cada recepción conserva cantidad, costo real, ubicación, lote proveedor cuando corresponda y fecha de ingreso.
 3. Consultar Inventario para ver los ingresos disponibles por lote. Una orden de 100 puede recibir 75 (PARCIAL) y 25 (COMPLETA); 75 + 30 se rechaza.
