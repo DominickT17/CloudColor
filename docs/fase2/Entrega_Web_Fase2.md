@@ -31,9 +31,10 @@ Los SP usan `BEGIN TRANSACTION`, `COMMIT`, `TRY/CATCH`, `ROLLBACK` y `THROW`; ad
 ## Preparación y ejecución
 
 1. En un equipo nuevo, instalar SQL Server 2022 Express, SSMS y SDK .NET 9. Seguir la configuración de conexión del [README](../../README.md).
-2. En una base nueva, ejecutar en SSMS los scripts `00` a `11` en orden. Si ya se instaló Fase I, instalar solamente `06` a `11` que aún no existan. No repetir los CREATE sobre objetos instalados ni reconstruir la base actual.
-3. Si no hay ningún usuario, iniciar WinForms para configurar el primer Gerente con una contraseña elegida por la persona. No hay credenciales predeterminadas.
-4. Compilar y ejecutar desde la raíz:
+2. En una base nueva, ejecutar en SSMS los scripts `00` a `11` en orden. Si ya se instaló Fase I, instalar solamente `06` a `11` que aún no existan. No repetir los CREATE sobre objetos instalados ni reconstruir una base con información que se desea conservar.
+3. Iniciar WinForms para configurar el primer Gerente con una contraseña elegida por la persona. Esta configuración inicial es necesaria porque los procedimientos de Fase II autorizan cada operación; el script 12 no crea usuarios y no contiene contraseñas ni hashes.
+4. Ejecutar `database/scripts/12_Datos_Demostracion_Fase2.sql` una sola vez en SSMS. Carga los clientes, proveedores, productos y variantes de demostración; prepara bodega, ubicaciones y asociaciones; registra compras y recepciones mediante los SP oficiales; y crea las cotizaciones, facturas, cobro e inventario PEPS. El script comprueba los estados y existencias finales. Si encuentra identificadores de la demostración ya usados, se detiene antes de insertar para evitar duplicados. Las diez capturas están en [evidencias](evidencias/).
+5. Compilar y ejecutar desde la raíz:
 
 ```powershell
 dotnet build src/CloudColor.sln -c Release --nologo -warnaserror
@@ -56,6 +57,8 @@ Usar un entorno de demostración autorizado; los ensayos automáticos utilizan u
 Capturas sugeridas: cotización pendiente/confirmada; factura con su detalle; cobro distribuido y factura pagada; factura imprimible; orden de 100; recepción parcial 75/100; recepción completa 100/100; inventario con lotes. Usar datos de QA, sin contraseñas ni información personal real.
 
 ## Verificación reproducible
+
+Para instalar los objetos y preparar la demostración en una base nueva, el orden completo es `00` → `01` → `02` → `03` → `04` → `05` → `06` → `07` → `08` → `09` → `10` → `11` → configuración inicial del Gerente desde la aplicación → `12`. La configuración inicial genera el verificador PBKDF2 desde C#; no se publica ni se inserta un hash predefinido. El script 12 está destinado a una instalación limpia y una ejecución.
 
 ```powershell
 dotnet run --project tests/CloudColor.Pruebas -c Release --no-build -- --concurrencia
