@@ -138,10 +138,12 @@ BEGIN
     SET NOCOUNT ON;
     EXEC dbo.sp_AutorizarFase2 @UsuarioActorID, 'FACTURA_CONSULTA';
     SELECT f.FacturaID,f.NumeroFactura,f.ClienteID,c.NombreRazonSocial AS Cliente,c.NIT,f.CotizacionID,f.Fecha,f.Estado,
-        f.TotalOriginal,f.TotalActual,e.Nombres+' '+e.Apellidos AS Emisor
+        f.TotalOriginal,f.TotalActual,e.Nombres+' '+e.Apellidos AS Emisor,u.NombreUsuario AS UsuarioEmisor
     FROM dbo.Factura f JOIN dbo.Cliente c ON c.ClienteID=f.ClienteID
     JOIN dbo.Usuario u ON u.UsuarioID=f.UsuarioEmisorID JOIN dbo.Empleado e ON e.EmpleadoID=u.EmpleadoID
-    WHERE @Buscar IS NULL OR f.NumeroFactura LIKE '%'+@Buscar+'%' OR c.NombreRazonSocial LIKE '%'+@Buscar+'%' ORDER BY f.FacturaID DESC;
+    WHERE @Buscar IS NULL OR f.NumeroFactura LIKE '%'+@Buscar+'%' OR c.NombreRazonSocial LIKE '%'+@Buscar+'%'
+        OR EXISTS(SELECT 1 FROM dbo.Cotizacion q WHERE q.CotizacionID=f.CotizacionID AND q.NumeroCotizacion LIKE '%'+@Buscar+'%')
+    ORDER BY f.FacturaID DESC;
 END;
 GO
 CREATE PROCEDURE dbo.sp_FacturaDetalle @UsuarioActorID int, @FacturaID int
@@ -160,7 +162,10 @@ AS
 BEGIN
     SET NOCOUNT ON;
     EXEC dbo.sp_AutorizarFase2 @UsuarioActorID, 'FACTURA_CONSULTA';
-    SELECT p.MedioPagoID,m.Nombre AS Medio,p.Monto,p.Referencia,p.FechaHora
-    FROM dbo.PagoFactura p JOIN dbo.MedioPago m ON m.MedioPagoID=p.MedioPagoID WHERE p.FacturaID=@FacturaID ORDER BY p.PagoFacturaID;
+    SELECT p.MedioPagoID,m.Nombre AS Medio,p.Monto,p.Referencia,p.FechaHora,
+        u.NombreUsuario AS Cajero
+    FROM dbo.PagoFactura p JOIN dbo.MedioPago m ON m.MedioPagoID=p.MedioPagoID
+    JOIN dbo.Usuario u ON u.UsuarioID=p.UsuarioCajeroID
+    WHERE p.FacturaID=@FacturaID ORDER BY p.PagoFacturaID;
 END;
 GO
