@@ -31,8 +31,10 @@ internal sealed class EntornoPruebas : IDisposable
             if(directorio==null) throw new InvalidOperationException("No se encontro database/scripts.");
             using var db=new SqlConnection(Cadena); db.Open();
             foreach(string carpeta in new[] { "scripts","tests" })
-            foreach(string archivo in Directory.GetFiles(Path.Combine(directorio.FullName,"database",carpeta),"*.sql").Order())
+            foreach(string archivo in Directory.GetFiles(Path.Combine(directorio.FullName,"database",carpeta),"*.sql").Order()
+                .Where(archivo=>carpeta!="scripts"||Path.GetFileName(archivo)!="12_Datos_Demostracion_Fase2.sql"))
             {
+                // La carga 12 es una demostracion opcional que requiere un Gerente; la QA arranca vacia.
                 // Reemplazo solo en memoria: los scripts del repositorio siguen apuntando a CloudColorDB.
                 string sql=File.ReadAllText(archivo).Replace("CloudColorDB",nombre,StringComparison.Ordinal);
                 foreach(string lote in Regex.Split(sql,@"^GO\s*$",RegexOptions.Multiline|RegexOptions.IgnoreCase))

@@ -7,7 +7,8 @@ using CloudColor.Entidades;
 internal static partial class Program
 {
     private static int pruebas;
-    private const string Clave="Prueba-Web-Temporal-2026!"; // Solo se crea en la base QA desechable.
+    private static readonly string Clave=Environment.GetEnvironmentVariable("CLOUDCOLOR_QA_PASSWORD")
+        ?? throw new InvalidOperationException("Defina CLOUDCOLOR_QA_PASSWORD solo para ejecutar las pruebas QA.");
     private static void Check(bool ok,string mensaje) { if(!ok)throw new Exception(mensaje);Console.WriteLine("OK WEB: "+mensaje);pruebas++; }
     private static HttpClient Cliente()=>new(new HttpClientHandler { AllowAutoRedirect=false,CookieContainer=new CookieContainer() }) { BaseAddress=new Uri("http://localhost:5256"),Timeout=TimeSpan.FromSeconds(30) };
     private static async Task<string> Pagina(HttpClient c,string ruta)

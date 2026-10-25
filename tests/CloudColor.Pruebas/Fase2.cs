@@ -116,6 +116,7 @@ internal static partial class Program
                 Texto(f,"Buscar","TEST-F2-DIRECTA"); Pulsar(f,"Consultar");
                 Comprobar(grid.Rows.Count==1 && Control<DataGridView>(f,"DetalleConsulta").Rows.Count==1,"F2 busqueda de factura filtra lista y detalle");
             }
+            var facturaDirecta=app.Fase2.Facturas().Single(x=>x.NumeroFactura=="TEST-F2-DIRECTA");
             int empleado=app.Empleados.Guardar(new Empleado { CodigoEmpleado="TEST-F2-C",Nombres="Cajero",Apellidos="Temporal" });
             app.Seguridad.GuardarUsuario(new Usuario { EmpleadoID=empleado,RolID=app.Seguridad.Roles().Single(r=>r.Nombre=="Cajero").RolID,NombreUsuario="test.f2.cajero" },clave);
             empleado=app.Empleados.Guardar(new Empleado { CodigoEmpleado="TEST-F2-D",Nombres="Digitador",Apellidos="Temporal" });
@@ -125,6 +126,10 @@ internal static partial class Program
             app.Seguridad.Login("test.f2.cajero",clave); Rechaza(()=>app.Fase2.CrearOrden("PROHIBIDA",proveedor,[]),"F2 Cajero no crea compras desde Negocio");
             Rechaza(()=>app.Fase2.Facturar("PROHIBIDA",cliente,[]),"F2 Cajero no emite desde Negocio");
             Rechaza(()=>app.Fase2.Variantes(),"F2 Cajero no mantiene variantes");
+            Rechaza(()=>app.Fase2.ReporteVentas(DateTime.Today,DateTime.Today),"Proyecto Final Cajero no consulta reportes Gerente");
+            Rechaza(()=>app.Fase2.Devoluciones(),"Proyecto Final Cajero no consulta devoluciones Gerente");
+            Rechaza(()=>app.Fase2.AnularFactura(facturaDirecta.FacturaID,"Motivo"),"Proyecto Final Cajero no anula facturas");
+            Rechaza(()=>app.Fase2.CrearDevolucion("PROHIBIDA",factura.FacturaID,"Motivo",[]),"Proyecto Final Cajero no registra devoluciones");
             using(var f=new FacturacionForm(app)) { Abrir(f); Comprobar(f.Controls.OfType<TabControl>().Single().TabCount==1,"F2 Cajero solo consulta y cobra en UI"); Foto(f,"23-cajero-facturas"); }
             Rechaza(()=>app.Fase2.Cobrar(factura.FacturaID,[new Pago { MedioPagoID=efectivo,Monto=159 }]),"F2 suma de pagos incorrecta rechazada");
             using(var f=new PagoForm(app,factura))
@@ -158,6 +163,32 @@ internal static partial class Program
             }
             Comprobar(Fase2Servicio.Total([new LineaVenta { Cantidad=0.3333m,PrecioUnitario=1 },new LineaVenta { Cantidad=0.3333m,PrecioUnitario=1 }])==0.66m,"F2 redondeo por linea a dos decimales");
             app.Seguridad.Login("test.f2.gerente",clave);
+            var lineaDevolucion=app.Fase2.DevolucionDisponibles(factura.FacturaID).First(x=>x.ProductoVarianteID==v1);
+            decimal stockPrevio=app.Fase2.Inventario().Where(x=>x.ProductoVarianteID==v1).Sum(x=>x.CantidadDisponible);
+            int devolucionID=app.Fase2.CrearDevolucion("TEST-FINAL-DV",factura.FacturaID,"Prueba parcial desde Negocio",[new LineaDevolucion{DetalleFacturaLoteID=lineaDevolucion.DetalleFacturaLoteID,CantidadDevuelta=2}]);
+            Comprobar(app.Fase2.DevolucionDetalle(devolucionID).Single().DetalleFacturaLoteID==lineaDevolucion.DetalleFacturaLoteID,"Proyecto Final devolución conserva lote de origen");
+            Comprobar(app.Fase2.Inventario().Where(x=>x.ProductoVarianteID==v1).Sum(x=>x.CantidadDisponible)==stockPrevio+2,"Proyecto Final devolución repone inventario");
+            var excesoDevolucion=new LineaDevolucion{DetalleFacturaLoteID=lineaDevolucion.DetalleFacturaLoteID,CantidadDevuelta=lineaDevolucion.CantidadDisponible-1};
+            Rechaza(()=>app.Fase2.CrearDevolucion("TEST-FINAL-DV-EXCESO",factura.FacturaID,"Exceso",[excesoDevolucion]),"Proyecto Final exceso acumulado en devolución rechazado");
+            var reporteDesde=DateTime.Today.AddDays(-1);var reporteHasta=DateTime.Today;
+            var resumenFinal=app.Fase2.ReporteVentas(reporteDesde,reporteHasta);
+            var masVendidos=app.Fase2.ReporteProductos(reporteDesde,reporteHasta,"MAS_VENDIDOS",5);
+            var ingresos=app.Fase2.ReporteProductos(reporteDesde,reporteHasta,"MAYORES_INGRESOS",10);
+            var menosVendidos=app.Fase2.ReporteProductos(reporteDesde,reporteHasta,"MENOS_VENDIDOS",0);
+            Comprobar(resumenFinal.CantidadFacturas==2&&resumenFinal.TotalFacturado==150,"Proyecto Final reporte fecha excluye devoluciones del subtotal histórico");
+            Comprobar(masVendidos.Single(x=>x.ProductoVarianteID==v1).CantidadVendida==11&&ingresos.Any(x=>x.ProductoVarianteID==v1&&x.Ingresos==110),"Proyecto Final productos más vendidos e ingresos históricos");
+            Comprobar(menosVendidos.Any(x=>x.ProductoVarianteID==v2),"Proyecto Final menos vendidos representa las variantes sin venta");
+            _=app.Fase2.ReporteSinStock();
+            var lotesFactura=app.Fase2.FacturaLotes(factura.FacturaID);
+            Comprobar(lotesFactura.Any(x=>x.CantidadDevuelta==2&&x.CantidadNeta==lineaDevolucion.CantidadSalida-2),"Proyecto Final consulta factura presenta salida y devolución por lote");
+            decimal stockAntesAnular=app.Fase2.Inventario().Where(x=>x.ProductoVarianteID==v1).Sum(x=>x.CantidadDisponible);
+            app.Fase2.AnularFactura(facturaDirecta.FacturaID,"Anulación de prueba desde Negocio");
+            var facturaAnulada=app.Fase2.Facturas().Single(x=>x.FacturaID==facturaDirecta.FacturaID);
+            Comprobar(facturaAnulada.Estado=="ANULADA"&&facturaAnulada.TotalOriginal==10&&facturaAnulada.TotalActual==0,"Proyecto Final anulación conserva el total original y pone actual en cero");
+            Comprobar(app.Fase2.Inventario().Where(x=>x.ProductoVarianteID==v1).Sum(x=>x.CantidadDisponible)==stockAntesAnular+1,"Proyecto Final anulación repone al lote vendido");
+            Rechaza(()=>app.Fase2.AnularFactura(facturaDirecta.FacturaID,"Anulación repetida"),"Proyecto Final doble anulación rechazada");
+            var despuesAnular=app.Fase2.ReporteVentas(reporteDesde,reporteHasta);
+            Comprobar(despuesAnular.CantidadFacturas==1&&despuesAnular.TotalFacturado==140,"Proyecto Final reporte excluye la factura anulada");
             using(var f=new InventarioForm(app)) { Abrir(f); Foto(f,"26-inventario"); Comprobar(Control<DataGridView>(f,"Tabla").Rows.Count==3,"F2 inventario por lote visible"); }
             using(var f=new MenuPrincipalForm(app)) { Abrir(f); Foto(f,"27-menu-fase2"); Comprobar(Control<Button>(f,"Facturas").Enabled && Control<Button>(f,"Cliente").Enabled,"F2 menu conserva Fase I e integra facturas");
                 AbrirDesdeMenu<ProductoVarianteForm>(f,"Variantes"); AbrirDesdeMenu<CotizacionForm>(f,"Cotizaciones");

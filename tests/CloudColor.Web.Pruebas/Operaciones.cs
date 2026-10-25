@@ -13,7 +13,7 @@ internal static partial class Program
         await Exito(c,"/Proveedores/Editar","/Proveedores/Editar/0",new(){{"Nombre","Proveedor QA web"}},"alta proveedor");int proveedor=a.Proveedores.Listar().Single().ProveedorID;
         await Exito(c,"/Productos","/Productos/Marca",new(){{"nombre","Marca QA web"}},"marca auxiliar");int marca=a.Catalogos.Marcas().Single().ID;
         await Exito(c,"/Productos/Editar","/Productos/Editar/0",new(){{"Nombre","Pintura QA web"},{"CategoriaProductoID",a.Catalogos.Categorias().Single(x=>x.Nombre=="Pinturas").ID.ToString()},{"MarcaID",marca.ToString()},{"ManejaLote","true"},{"AplicaPEPS","true"}},"alta producto");int producto=a.Productos.Listar().Single().ProductoID;
-        await Exito(c,"/Variantes/Editar","/Variantes/Editar/0",new(){{"ProductoID",producto.ToString()},{"PresentacionID",a.Fase2.Presentaciones().Single(x=>x.Nombre=="1 galon").ID.ToString()},{"CodigoSKU","WEB-QA-1"},{"PrecioVentaActual","20.00"},{"StockMinimo","5"}},"alta variante decimal");int v=a.Fase2.Variantes().Single().ProductoVarianteID;
+        await Exito(c,"/Variantes/Editar","/Variantes/Editar/0",new(){{"ProductoID",producto.ToString()},{"PresentacionID",a.Fase2.Presentaciones().Single(x=>x.Nombre=="1 galon").ID.ToString()},{"CodigoSKU","WEB-QA-1"},{"PrecioVentaActual","20.00"},{"StockMinimo","95"}},"alta variante con minimo para prueba de alerta");int v=a.Fase2.Variantes().Single().ProductoVarianteID;
         await Exito(c,"/Bodegas/Editar","/Bodegas/Editar/0",new(){{"Codigo","WEB-B1"},{"Nombre","Bodega QA web"}},"alta bodega");int b=a.Fase2.Bodegas().Single().BodegaID;
         await Exito(c,"/Ubicaciones/Editar","/Ubicaciones/Editar/0",new(){{"BodegaID",b.ToString()},{"Codigo","A-01"},{"Descripcion","Ubicacion QA"}},"alta ubicacion");int u=a.Fase2.Ubicaciones().Single().UbicacionID;
         await Exito(c,"/ProveedorProducto/Editar","/ProveedorProducto/Editar/0",new(){{"ProveedorID",proveedor.ToString()},{"ProductoVarianteID",v.ToString()}},"asociacion proveedor variante");
@@ -34,6 +34,28 @@ internal static partial class Program
         int ef=a.Fase2.Medios().Single(x=>x.Nombre=="Efectivo").ID,tar=a.Fase2.Medios().Single(x=>x.Nombre=="Tarjeta").ID;
         var pagos=new Dictionary<string,string>{{"accion","Cobrar"},{"Pagos[0].MedioPagoID",ef.ToString()},{"Pagos[0].Monto","100"},{"Pagos[1].MedioPagoID",tar.ToString()},{"Pagos[1].Monto","140"},{"Pagos[1].Referencia","QA-TARJETA"}};
         await Exito(cajero,"/Cobros/Registrar/"+factura,"/Cobros/Registrar/"+factura,pagos,"Cajero cobra efectivo y tarjeta HTTP");Check(a.Fase2.FacturaPagos(factura).Count==2,"dos pagos persistidos");
+        var fCotizada=a.Fase2.Facturas().Single(x=>x.FacturaID==factura);
+        Check(fCotizada.UsuarioEmisor=="web.gerente"&&a.Fase2.FacturaPagos(factura).Single(x=>x.Medio=="Efectivo").Cajero=="web.cajero","consulta factura conserva emisor y cajero");
+        string htmlFactura=await Pagina(c,"/Facturas/Ver/"+factura);Check(htmlFactura.Contains("Usuario emisor: web.gerente")&&htmlFactura.Contains("Cajero")&&htmlFactura.Contains("Lotes e inventario de origen"),"detalle de factura muestra emisor, cajero y lotes al Gerente");
+        var hoy=DateTime.Today.ToString("yyyy-MM-dd");
+        foreach(string ruta in new[]{"/Reportes/Ventas?desde="+hoy+"&hasta="+hoy,"/Reportes/Productos?vista=mas-vendidos","/Reportes/Productos?vista=mayores-ingresos","/Reportes/Productos?vista=menos-vendidos","/Reportes/Inventario","/Devoluciones"})await Pagina(c,ruta);
+        using(var r=await c.GetAsync("/Reportes/Factura?buscar=WEB-F-COT"))Check(r.StatusCode==HttpStatusCode.Redirect&&r.Headers.Location!.ToString().Contains("/Facturas?buscar="),"consulta de factura dirige a búsqueda por número");
+        string facturaPorCotizacion=await Pagina(c,"/Facturas?buscar=WEB-COT-1");Check(facturaPorCotizacion.Contains("WEB-F-COT"),"consulta encuentra factura por número de cotización original");
+        var disponibles=a.Fase2.DevolucionDisponibles(factura);var origen=disponibles.First(x=>x.CodigoSKU=="WEB-QA-1");
+        decimal unidadesAntes=a.Fase2.Inventario().Where(x=>x.ProductoVarianteID==origen.ProductoVarianteID).Sum(x=>x.CantidadDisponible);
+        var devolucionForm=new Dictionary<string,string>{{"Numero","WEB-DV-1"},{"FacturaID",factura.ToString()},{"Motivo","Prueba devolución parcial"},{"Lineas[0].Incluir","true"},{"Lineas[0].DetalleFacturaLoteID",origen.DetalleFacturaLoteID.ToString()},{"Lineas[0].CantidadDevuelta","2"}};
+        await Exito(c,"/Devoluciones/Nueva?factura="+factura,"/Devoluciones/Nueva",devolucionForm,"devolución parcial HTTP");
+        var registrada=a.Fase2.Devoluciones().Single();Check(a.Fase2.DevolucionDetalle(registrada.DevolucionID).Single().DetalleFacturaLoteID==origen.DetalleFacturaLoteID,"devolución vinculada al mismo lote vendido");
+        Check(a.Fase2.Inventario().Where(x=>x.ProductoVarianteID==origen.ProductoVarianteID).Sum(x=>x.CantidadDisponible)==unidadesAntes+2,"devolución restituye existencias al lote original");
+        await Pagina(c,"/Devoluciones/Ver/"+registrada.DevolucionID);
+        var limiteRestante=origen.CantidadDisponible-2;var exceso=new Dictionary<string,string>{{"Numero","WEB-DV-EXCESO"},{"FacturaID",factura.ToString()},{"Motivo","Prueba de exceso"},{"Lineas[0].Incluir","true"},{"Lineas[0].DetalleFacturaLoteID",origen.DetalleFacturaLoteID.ToString()},{"Lineas[0].CantidadDevuelta",(limiteRestante+1).ToString(System.Globalization.CultureInfo.InvariantCulture)}};
+        using(var r=await Post(c,"/Devoluciones/Nueva?factura="+factura,"/Devoluciones/Nueva",exceso))Check(r.StatusCode==HttpStatusCode.OK&&a.Fase2.Devoluciones().Count==1,"devolución superior al saldo permitido rechazada en HTTP");
+        var directa=a.Fase2.Facturas().Single(x=>x.NumeroFactura=="WEB-F-DIRECTA");decimal antesAnular=a.Fase2.Inventario().Where(x=>x.ProductoVarianteID==v).Sum(x=>x.CantidadDisponible);
+        string cancelacion=await Pagina(c,"/Facturas/Ver/"+directa.FacturaID);Check(cancelacion.Contains("data-open-dialog=\"anular-factura\"")&&cancelacion.Contains("Motivo obligatorio"),"acción de anulación solicita motivo en modal");
+        await Exito(c,"/Facturas/Ver/"+directa.FacturaID,"/Facturas/Anular/"+directa.FacturaID,new(){{"motivo","Prueba anulación HTTP"}},"anulación HTTP de Gerente");
+        directa=a.Fase2.Facturas().Single(x=>x.FacturaID==directa.FacturaID);Check(directa.Estado=="ANULADA"&&directa.TotalOriginal==20&&directa.TotalActual==0,"factura anulada conserva original y total actual cero");
+        Check(a.Fase2.Inventario().Where(x=>x.ProductoVarianteID==v).Sum(x=>x.CantidadDisponible)==antesAnular+1,"anulación repone existencias vendidas");
+        htmlFactura=await Pagina(c,"/Facturas/Ver/"+directa.FacturaID);Check(htmlFactura.Contains("ANULADA")&&htmlFactura.Contains("Q 0.00"),"consulta refleja badge anulada y total actual cero");
         using(var r=await Post(cajero,"/Cobros/Registrar/"+factura,"/Cobros/Registrar/"+factura,pagos))Check(r.StatusCode==HttpStatusCode.OK&&a.Fase2.FacturaPagos(factura).Count==2,"cobro repetido rechazado");
         foreach(string ruta in new[]{"/Dashboard","/Inventario","/Compras/Ver/"+orden,"/Recepciones/Ver/"+orden,"/Cotizaciones/Ver/"+cot,"/Facturas/Ver/"+factura,"/Facturas/Imprimir/"+factura,"/Cobros","/Usuarios","/Roles","/Empleados"})await Pagina(c,ruta);
         using var digitador=Cliente();await Login(digitador,"web.digitador");
@@ -60,8 +82,8 @@ internal static partial class Program
         int recepcion=a.Fase2.Recepciones(orden).First().RecepcionCompraID;
         await Pagina(c,"/Recepciones/Detalle/"+recepcion+"?orden="+orden);
         string completadas=await Pagina(c,"/Compras?estado=COMPLETA");Check(completadas.Contains("WEB-OC-100"),"enlace de grafico aplica filtro de estado");
-        foreach(string ruta in new[]{"/Usuarios","/Roles","/Cobros/Registrar/"+factura}){using var r=await digitador.GetAsync(ruta);Check(r.StatusCode==HttpStatusCode.Redirect&&r.Headers.Location!.ToString().Contains("AccesoDenegado"),"Digitador bloqueado en "+ruta);}
-        foreach(string ruta in new[]{"/Compras","/Inventario","/Facturas/Nueva"}){using var r=await cajero.GetAsync(ruta);Check(r.StatusCode==HttpStatusCode.Redirect&&r.Headers.Location!.ToString().Contains("AccesoDenegado"),"Cajero bloqueado en "+ruta);}
+        foreach(string ruta in new[]{"/Usuarios","/Roles","/Cobros/Registrar/"+factura,"/Reportes/Ventas","/Reportes/Productos?vista=menos-vendidos","/Reportes/Inventario","/Devoluciones","/Devoluciones/Nueva","/Facturas/Anular/"+directa.FacturaID}){using var r=await digitador.GetAsync(ruta);Check(r.StatusCode==HttpStatusCode.Redirect&&r.Headers.Location!.ToString().Contains("AccesoDenegado"),"Digitador bloqueado en "+ruta);}
+        foreach(string ruta in new[]{"/Compras","/Inventario","/Facturas/Nueva","/Reportes/Ventas","/Reportes/Inventario","/Devoluciones","/Facturas/Anular/"+directa.FacturaID}){using var r=await cajero.GetAsync(ruta);Check(r.StatusCode==HttpStatusCode.Redirect&&r.Headers.Location!.ToString().Contains("AccesoDenegado"),"Cajero bloqueado en "+ruta);}
         var usuario=a.Seguridad.Usuarios().Single(x=>x.NombreUsuario=="web.digitador");a.Seguridad.ActivarUsuario(usuario.UsuarioID,false);
         using(var r=await digitador.GetAsync("/Dashboard"))Check(r.StatusCode==HttpStatusCode.Redirect&&r.Headers.Location!.ToString().Contains("Login"),"cuenta desactivada revoca cookie en siguiente solicitud");a.Seguridad.ActivarUsuario(usuario.UsuarioID,true);
     }
