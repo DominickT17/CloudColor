@@ -1,6 +1,6 @@
 # Entrega de Fase II — CloudColor Web
 
-Esta entrega corresponde a la presentación web MVC/Razor de la rama `feat/web-ui`, que reutiliza Negocio, Datos, Entidades y los procedimientos de SQL Server 2022 Express. WinForms continúa disponible. El modelo conserva sus 31 tablas. No requiere crear otras tablas ni sustituir el modelo.
+Esta guía describe las funciones de Fase II de la aplicación MVC/Razor, extendidas en la rama de revisión `feat/proyecto-final`. Web reutiliza Negocio, Datos, Entidades y los procedimientos de SQL Server 2022 Express; WinForms continúa disponible. El modelo conserva sus 31 tablas.
 
 ## Requisitos y solución implementada
 
@@ -58,24 +58,19 @@ Capturas sugeridas: cotización pendiente/confirmada; factura con su detalle; co
 
 ## Verificación reproducible
 
-Para instalar los objetos y preparar la demostración en una base nueva, el orden completo es `00` → `01` → `02` → `03` → `04` → `05` → `06` → `07` → `08` → `09` → `10` → `11` → configuración inicial del Gerente desde la aplicación → `12`. La configuración inicial genera el verificador PBKDF2 desde C#; no se publica ni se inserta un hash predefinido. El script 12 está destinado a una instalación limpia y una ejecución.
+Para instalar los objetos y preparar la demostración en una base nueva, el orden es `00` → `01` → `02` → `03` → `04` → `05` → `06` → `07` → `08` → `09` → `10` → `11` → configuración inicial del Gerente desde la aplicación → `12` (opcional, solo para la demostración) → `13` → `14` → `15`. Si no se quieren los datos comerciales de demostración, omitir `12`. La configuración inicial genera el verificador PBKDF2 desde C#; los scripts no publican ni insertan un hash predefinido.
 
 ```powershell
-dotnet run --project tests/CloudColor.Pruebas -c Release --no-build -- --concurrencia
-dotnet run --project tests/CloudColor.Web.Pruebas -c Release --no-build -- --visual
+dotnet run --project tests/CloudColor.Pruebas -c Release --no-build
+dotnet run --project tests/CloudColor.Web.Pruebas -c Release --no-build
 ```
 
-Con la suite web temporal abierta, ejecutar `npm test --prefix tests/CloudColor.Web.Browser` con Node, Playwright local y Edge disponibles. Comprueba el recorrido de cotización/factura/cobro, compra, recepción 75+25, facturación directa e impresión PDF. Las suites C# instalan scripts 00–11 y ejecutan SQL 01–03 en bases QA; verifican PEPS, transacciones, permisos, concurrencia y que los datos originales se conserven. Cerrar la sesión visual mediante el archivo `.stop` exacto que imprime; así se elimina su base temporal.
+Las suites C# y web instalan scripts 00–11 y 13–15 en bases QA, ejecutan pruebas SQL 01–04 y comprueban que los datos originales se conserven. La carga de demostración 12 se omite en QA. Para navegador responsive, iniciar la suite web con `--visual` y ejecutar `npm run test:ux --prefix tests/CloudColor.Web.Browser` con Node, Playwright local y Edge disponibles. El runner imprime el archivo `.stop` exacto; crearlo al final elimina el servidor y la base temporal. El [estado final](../final/Estado_Proyecto_Final.md) documenta la validación conjunta y la [guía de presentación](../final/Guia_Presentacion.md) describe el recorrido.
 
 La validación automática no sustituye la aceptación del docente ni la prueba con una impresora física. La impresión implementada corresponde al documento académico de la operación; no constituye una integración de facturación fiscal externa. No se realiza merge como parte de esta entrega.
 
-## Resultado de la verificación del 19 de octubre de 2026
+## Validación conjunta más reciente
 
-- Release: 0 errores y 0 advertencias.
-- 110 comprobaciones de WinForms/Negocio/concurrencia y 127 verificaciones HTTP web correctas.
-- Pruebas SQL 01–03 correctas al instalar 00–11 en las bases temporales.
-- Edge: cotización, confirmación, factura, cobro con Efectivo/Tarjeta, compra, recepción 75 + 25, factura directa, 45 vistas responsive y PDF correctos.
-- Instancia local: presentes los cuatro tipos tabla y los seis procedimientos principales de la matriz. No fue necesario modificar ni reinstalar objetos SQL.
-- Bases QA eliminadas; contenido de las 31 tablas y 32 filas originales conservado.
+El estado conjunto probado el 25 de octubre de 2026 está en [Estado_Proyecto_Final.md](../final/Estado_Proyecto_Final.md). En ese corte, Release compiló con cero errores y cero advertencias, pasaron 116 comprobaciones C#/SQL, 125 en la ejecución de concurrencia, 164 HTTP y 85 vistas de navegador responsivas. Las suites eliminaron sus bases QA tras verificar que la base original conservó su huella observada (31 tablas y 103 filas). Las capturas finales se guardan en `docs/final/evidencias/`.
 
-El cambio de esta entrega hace explícitas en Facturas las dos formas de emitir y amplía la prueba de navegador para recepción completa y factura directa. La lógica transaccional ya existente se reutiliza y queda demostrada por las pruebas; no se presenta como una implementación nueva.
+No se modificó la base persistente como parte de estas pruebas. La impresión es una vista académica de factura con opción del navegador para imprimir o guardar como PDF; no es una integración fiscal externa.

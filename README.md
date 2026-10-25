@@ -1,6 +1,6 @@
 # CloudColor
 
-Proyecto Final de Bases de Datos II para administrar una empresa de pinturas y productos relacionados. La base de datos concentra el catálogo, compras con entregas parciales, inventario por ubicación y lote, cotizaciones, facturas, pagos, devoluciones y auditoría. Fase I está validada e integrada a main. Fase II implementa compras, inventario, cotización, facturación, cobros e impresión en feat/fase2; queda pendiente la revisión humana antes del merge. Devoluciones, anulaciones y reportes de la fase posterior todavía no se implementan.
+Proyecto Final de Bases de Datos II para administrar una empresa de pinturas y productos relacionados. El alcance implementado cubre Fase I, Fase II y el proyecto final: catálogos, usuarios y roles, compras con entregas parciales, inventario por ubicación y lote, cotizaciones, facturación, cobros, devoluciones, anulaciones, reportes y auditoría. El modelo aprobado conserva exactamente 31 tablas. Esta rama de entrega es `feat/proyecto-final`; todavía requiere revisión humana y no debe confundirse con un merge a `main`.
 
 ## Tecnología
 
@@ -31,8 +31,15 @@ Proyecto Final de Bases de Datos II para administrar una empresa de pinturas y p
 - `database/scripts/09_Procedures_Cotizacion.sql`: cotizaciones y confirmación.
 - `database/scripts/10_Procedures_Facturacion.sql`: emisión con PEPS, cobro y consultas.
 - `database/scripts/11_Procedures_Compras.sql`: órdenes y recepciones parciales/completas.
+- `database/scripts/12_Datos_Demostracion_Fase2.sql`: carga opcional y reproducible de la demostración comercial.
+- `database/scripts/13_Types_ProyectoFinal.sql`: TVP para detalles de devoluciones.
+- `database/scripts/14_Views_ProyectoFinal.sql`: ventas netas históricas por detalle.
+- `database/scripts/15_Procedures_ProyectoFinal.sql`: reportes, consulta de lotes, devolución y anulación transaccionales.
 - `database/tests/03_TestFase2.sql`: pruebas SQL de Fase II con ROLLBACK.
+- `database/tests/04_TestProyectoFinal.sql`: pruebas SQL de reportes, devolución, anulación y permisos.
 - `docs/fase2/Estado_Fase2.md`: objetos, flujos, permisos, evidencia y guía de revisión.
+- `docs/final/Estado_Proyecto_Final.md`: estado y validación del proyecto final.
+- `docs/final/Guia_Presentacion.md`: recorrido sugerido para la exposición.
 
 ## Ejecución en SSMS
 
@@ -50,14 +57,18 @@ Para una instalación nueva, conectarse a SQL Server 2022 Express, por ejemplo `
 10. `database/scripts/09_Procedures_Cotizacion.sql`
 11. `database/scripts/10_Procedures_Facturacion.sql`
 12. `database/scripts/11_Procedures_Compras.sql`
+13. `database/scripts/12_Datos_Demostracion_Fase2.sql` (opcional, una vez configurado el Gerente)
+14. `database/scripts/13_Types_ProyectoFinal.sql`
+15. `database/scripts/14_Views_ProyectoFinal.sql`
+16. `database/scripts/15_Procedures_ProyectoFinal.sql`
 
-Las pruebas SQL 01, 02 y 03 se ejecutan después de esa instalación en un entorno de pruebas. La suite C# descrita abajo prepara automáticamente una base temporal, instala 00–11 y ejecuta las tres suites SQL sin escribir en CloudColorDB.
+El script 12 es una carga opcional y reproducible para la demostración comercial; requiere que el Gerente ya esté configurado y se ejecuta después del 11. Si se omite, la base queda sin datos comerciales. Los scripts 13–15 instalan los objetos del proyecto final. Las pruebas SQL 01–04 se ejecutan en una base de pruebas. La suite C# prepara automáticamente una base temporal, instala 00–11 y 13–15, omite la carga opcional 12 y corre las cuatro suites sin escribir en CloudColorDB.
 
 Detenerse si un archivo devuelve un error. Los scripts seleccionan explícitamente `CloudColorDB`. El primero conserva una base existente. El segundo requiere una base sin tablas de usuario y rechaza su repetición sin reemplazar objetos; crea toda la estructura en una transacción. El tercero puede repetirse: solo inserta nombres ausentes, sin sobrescribir registros existentes.
 
 Los scripts 03 a 05 usan CREATE PROCEDURE, CREATE FUNCTION y CREATE VIEW: se instalan una vez y no son migraciones repetibles. Si la etapa inicial ya existe, comenzar en 03. En el entorno local actual ya están instalados todos los objetos; no repetir su creación.
 
-Para ampliar una instalación de Fase I que ya tenga 00–05, instalar **solo 06 → 07 → 08 → 09 → 10 → 11**, una vez. Todos los objetos de Fase II usan CREATE y no se deben repetir si ya existen. En la instancia local revisada el 12 de octubre de 2026 ya están instalados: las definiciones de las dos vistas y los 30 procedimientos coinciden con estos scripts. No es necesario volver a ejecutar SQL para iniciar la aplicación. Si existe una instalación parcial, revisar cada objeto antes de continuar; actualizar solamente sus bloques con ALTER PROCEDURE/ALTER VIEW cuando corresponda, conservando ANSI_NULLS y QUOTED_IDENTIFIER ON. Los tipos tabla no se reemplazan automáticamente.
+Para ampliar una instalación de Fase I que ya tenga 00–05, instalar **06 → 07 → 08 → 09 → 10 → 11 → 13 → 14 → 15** una sola vez. El script 12 es únicamente una carga de demostración y se ejecuta después de preparar una cuenta Gerente. Los objetos nuevos usan CREATE y no son migraciones repetibles. En una base existente, inspeccionar los objetos y ejecutar solamente los que falten; no reconstruir CloudColorDB. Los tipos tabla no se reemplazan automáticamente.
 
 Los procedimientos de listado de usuarios y productos utilizan las vistas del script 05; ejecutar toda la secuencia antes de abrir la aplicación. SQL Server permite crear los procedimientos del script 03 antes de que existan esas vistas mediante resolución diferida de nombres. Para actualizar una instalación anterior a la corrección final, ejecutar únicamente los bloques de `sp_ProductoListar` y `sp_UsuarioListar` del script 03, sustituyendo `CREATE PROCEDURE` por `ALTER PROCEDURE` y usando CloudColorDB; las vistas de 05 deben estar ya instaladas. No repetir el archivo 03 completo.
 
@@ -73,7 +84,7 @@ Los 17 CHECK validan cantidades positivas, precios y costos no negativos, stock 
 
 La unicidad compuesta de ProductoVariante se conserva tal como está en el modelo, incluido ColorID opcional: no se permiten variantes repetidas con la misma combinación de producto y presentación sin color.
 
-Los CHECK se complementan con los procedimientos transaccionales de Fase II: correspondencia orden/recepción y variante/lote, límite acumulado recibido, existencias suficientes, PEPS y pagos exactos. Las validaciones de devolución, anulación y reversión de inventario pertenecen a la fase posterior.
+Los CHECK se complementan con procedimientos transaccionales para correspondencia orden/recepción y variante/lote, límite acumulado recibido, existencias suficientes, PEPS, pagos exactos, devoluciones acumuladas y anulación de facturas.
 
 ## Datos iniciales
 
@@ -147,7 +158,9 @@ Roles permite modificar descripción y estado; los tres nombres se conservan par
 dotnet run --project tests/CloudColor.Pruebas -c Release
 ```
 
-La suite crea una base `CloudColor_QA_<GUID>` en la instancia configurada, instala 00–11 y ejecuta las pruebas SQL 01–03. Luego ejecuta Fase I y Fase II con credenciales efímeras y transacciones que se revierten. CloudColorDB se consulta únicamente para comparar cantidades y huellas del contenido antes/después, sin mostrar contraseñas ni hashes. La base temporal se elimina al terminar, incluso si una prueba lanza un error controlado. No modificar datos de CloudColorDB durante la comparación.
+La suite crea una base `CloudColor_QA_<GUID>` en la instancia configurada, instala 00–11 y 13–15 y ejecuta las pruebas SQL 01–04. Luego ejecuta Fase I, Fase II y operaciones finales con credenciales efímeras y transacciones que se revierten. CloudColorDB se consulta únicamente para comparar cantidades y huellas del contenido antes/después, sin mostrar contraseñas ni hashes. La base temporal se elimina al terminar, incluso si una prueba lanza un error controlado. No modificar datos de CloudColorDB durante la comparación.
+
+Antes de ejecutar suites C# o web, define localmente la variable `CLOUDCOLOR_QA_PASSWORD` con una clave de prueba temporal. El runner la utiliza solo en la base desechable; no la guardes en archivos ni la compartas. La suite del navegador requiere la misma variable en su proceso.
 
 Se requiere permiso local CREATE/DROP DATABASE; la opción de concurrencia también necesita visibilidad de las sesiones SQL Server. Si faltan permisos, resolverlos en el entorno de pruebas; nunca vaciar CloudColorDB. Una interrupción forzada del proceso puede impedir el finally: en ese caso identificar la base QA exacta antes de una limpieza manual, sin usar eliminaciones por comodines.
 
@@ -175,15 +188,24 @@ Los TVP envían los detalles como tablas parametrizadas. No se usan JSON/XML en 
 
 Gerente conserva administración de Fase I y puede consultar y operar Fase II. Digitador mantiene catálogos, compras, recepciones, cotizaciones y emisión; no cobra. Cajero consulta/imprime facturas y cobra; no mantiene catálogos ni emite. UI, Negocio y procedimientos verifican esos permisos.
 
+## Proyecto Final: reportes, devoluciones y anulaciones
+
+- Gerente consulta ventas por fecha, medios de pago, cantidad de facturas, productos más/menos vendidos, mayores ingresos y variantes sin stock o bajo mínimo. Los ingresos usan el precio histórico de `DetalleFactura` y las devoluciones reducen unidades e ingresos netos.
+- La consulta de factura presenta cliente/NIT, empleado y usuario emisor, líneas, pagos/cajero, total original/actual y, para Gerente, distribución por lote.
+- Anular conserva factura y detalle, exige motivo, registra `AnulacionFactura` y `Bitacora`, fija `TotalActual=0` y devuelve al lote original solo las unidades que aún no habían sido devueltas.
+- Registrar devolución permite selección por líneas/lotes originales, rechaza cantidades mayores al saldo acumulado, repone el mismo lote y registra `DetalleDevolucion`, movimiento y `Bitacora`. Los dos flujos son transaccionales; no se borra historial.
+- Gerente es el único perfil que consulta estos reportes, registra devoluciones y anula. La verificación existe en UI, Negocio y SQL; Digitador y Cajero no obtienen permisos por invocar las rutas directamente.
+- Los scripts 13–15 y la suite `database/tests/04_TestProyectoFinal.sql` agregan estos objetos y pruebas sin cambiar las 31 tablas. Ver [estado final](docs/final/Estado_Proyecto_Final.md) y [guía de presentación](docs/final/Guia_Presentacion.md).
+
 ## Estado
 
-Fase I conserva sus funcionalidades y sus 49 comprobaciones de regresión. El documento `docs/fase1/Estado_Fase1.md` describe la entrega histórica previa a su integración; el estado actual de Fase II está en [Estado_Fase2.md](docs/fase2/Estado_Fase2.md).
+Fase I, Fase II y Proyecto Final están implementados en esta rama. El documento `docs/fase1/Estado_Fase1.md` y `docs/fase2/Estado_Fase2.md` son snapshots históricos; el estado conjunto está en [Estado_Proyecto_Final.md](docs/final/Estado_Proyecto_Final.md).
 
-Build Release sin errores ni advertencias; instalación 00–11, pruebas SQL, integración WinForms y concurrencia verificadas en una base desechable. Los datos reales locales se conservaron. La rama feat/fase2 requiere revisión humana y todavía no se ha integrado a main.
+La validación final actual se resume en `docs/final/Estado_Proyecto_Final.md`. El Release observado pasó con 0 errores y 0 advertencias; pasaron las suites SQL 01–04, 116 comprobaciones C#, 125 en la pasada de concurrencia, 164 comprobaciones HTTP y 85 vistas de navegador responsivas. La rama `feat/proyecto-final` permanece separada; no se hizo merge a `main`.
 
 ## Interfaz web
 
-La rama `feat/web-ui` agrega `src/CloudColor.Web`, presentación ASP.NET Core 9 MVC/Razor que reutiliza Negocio, Entidades, Datos y los objetos SQL de Fase I/II. WinForms permanece en la solución; el modelo de 31 tablas no cambia.
+`src/CloudColor.Web` es la presentación ASP.NET Core 9 MVC/Razor que reutiliza Negocio, Entidades, Datos y los objetos SQL de Fase I, Fase II y el Proyecto Final. WinForms permanece en la solución; el modelo de 31 tablas no cambia.
 
 ```powershell
 cd C:\Users\domin\Documents\CloudColor
@@ -192,13 +214,13 @@ dotnet run --project .\src\CloudColor.Web
 
 Abrir **https://localhost:7255** (certificado de desarrollo confiable requerido) o **http://localhost:5255** para desarrollo local. Usar una cuenta existente de CloudColorDB. Si no existe ninguna, completar primero la configuración inicial en WinForms. No se requiere reinstalar la base para abrir la web.
 
-Incluye Dashboard, catálogos, inventario, compras, recepciones, cotizaciones, facturación, impresión, cobros y administración según Digitador/Cajero/Gerente. Cookie protegida de 30 minutos, revalidación de permisos por solicitud y antiforgery en POST. La contraseña original nunca se envía a SQL Server.
+Incluye Dashboard, catálogos, inventario, compras, recepciones, cotizaciones, facturación, impresión, cobros, reportes, consulta completa de factura, devoluciones, anulaciones y administración según Digitador/Cajero/Gerente. Cookie protegida de 30 minutos, revalidación de permisos por solicitud y antiforgery en POST. La contraseña original nunca se envía a SQL Server.
 
 ```powershell
 dotnet build src/CloudColor.sln -c Release --nologo -warnaserror
 dotnet run --project tests/CloudColor.Web.Pruebas -c Release --no-build
 ```
 
-La suite web utiliza una base QA desechable y el puerto 5256; comprueba que los datos originales se conserven. Ejecución, permisos, rutas, pruebas de navegador, capturas y límites se describen en [Estado_Web.md](docs/web/Estado_Web.md). No se realizó merge ni publicación externa.
+La suite web utiliza una base QA desechable y el puerto 5256; comprueba que los datos originales se conserven. Ejecución, permisos, rutas, pruebas de navegador y capturas se describen en [Estado_Web.md](docs/web/Estado_Web.md) y en el informe final. No se realizó merge ni publicación externa.
 
 La interfaz incorpora búsqueda global por perfil al escribir en la cabecera, notificaciones, confirmaciones, protección de cambios sin guardar, vistas rápidas y filtros con chips. Cotizaciones, facturas directas y compras permiten editar el detalle sin recargar; Cobros calcula la distribución al instante. Dashboard muestra estados reales, Inventario distingue variantes sin ingresos y las tablas se convierten en tarjetas en móvil. Con QA `--visual` abierto, `npm run test:ux --prefix tests/CloudColor.Web.Browser` valida estos recorridos y genera capturas en cinco tamaños.
