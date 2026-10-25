@@ -3,7 +3,7 @@
 <nav class="breadcrumb" aria-label="Ruta"><a href="/Facturas">Facturas</a> / <a href="/Facturas/Ver/@f.FacturaID">@f.NumeroFactura</a> / Cobro</nav>
 <div class="page-heading"><div><span class="eyebrow">UN COBRO CLARO, DE PRINCIPIO A FIN</span><h1>Completar pago</h1><p>@f.NumeroFactura · @f.Cliente</p></div><partial name="_Estado" model="f.Estado"/></div>
 <form method="post" data-payment="@f.Estado" data-pending="@((f.TotalActual-pagado).ToString(CultureInfo.InvariantCulture))" action="/Cobros/Registrar/@f.FacturaID">
-@Html.AntiForgeryToken()@if(!ViewData.ModelState.IsValid){<div asp-validation-summary="All" class="validation" role="alert"></div>}
+@Html.AntiForgeryToken()@await Html.PartialAsync("_ValidationSummary")
 <div class="document-grid"><div class="document-main">
 <details class="card document-section invoice-items"><summary>Detalle de factura · @Model.Detalle.Count variantes</summary><div class="table-wrap spaced"><table><thead><tr><th>Producto / SKU</th><th>Cantidad</th><th>Subtotal</th></tr></thead><tbody>@foreach(var line in Model.Detalle){<tr><td>@line.Producto<small>@line.CodigoSKU</small></td><td>@line.Cantidad.ToString("0.####")</td><td>Q @line.Subtotal.ToString("N2")</td></tr>}</tbody></table></div></details>
 <section class="card document-section"><h2>Distribución del pago</h2><p class="muted spaced">Combina medios hasta completar exactamente el total.</p>

@@ -35,6 +35,27 @@ window.addEventListener('pageshow',()=>{
 
 document.querySelector('#NuevaVariante')?.addEventListener('change',e=>{if(e.target.dataset.suggestPrice==='true'){const price=e.target.selectedOptions[0]?.dataset.precio;if(price)document.querySelector('#NuevoPrecio').value=price;}});
 document.querySelector('#imprimir')?.addEventListener('click',()=>window.print());
+document.querySelector('[data-export-report]')?.addEventListener('click',event=>{
+ const button=event.currentTarget,table=document.querySelector('.report-table-card table');
+ const heading=document.querySelector('.page-heading h1')?.textContent.trim()||'Reporte CloudColor';
+ const rows=[['Reporte',heading],['Desde',button.dataset.reportFrom],['Hasta',button.dataset.reportTo],[]];
+ if(table){
+  rows.push([...table.tHead.rows[0].cells].map(cell=>cell.textContent.replace('↕','').trim()));
+  [...table.tBodies[0].rows].filter(row=>!row.hidden).forEach(row=>rows.push([...row.cells].map(cell=>cell.innerText.replace(/\s+/g,' ').trim())));
+ }else{
+  rows.push(['Indicador','Monto']);
+  document.querySelectorAll('.report-metrics .metric').forEach(card=>rows.push([card.querySelector('span')?.textContent.trim()||'',card.querySelector('.metric-number')?.textContent.trim()||'']));
+ }
+ const csv=rows.map(row=>row.map(value=>{
+  const text=String(value??'');
+  const safe=/^\s*[=+@-]/.test(text)?"'"+text:text;
+  return '"'+safe.replace(/"/g,'""')+'"';
+ }).join(',')).join('\r\n');
+ const blob=new Blob(['\uFEFF',csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');
+ link.href=url;link.download=`cloudcolor-${button.dataset.reportName}-${button.dataset.reportFrom}-${button.dataset.reportTo}.csv`;document.body.append(link);link.click();link.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+ const status=document.querySelector('[data-export-status]');if(status)status.textContent='Reporte descargado como archivo CSV.';
+});
 
 // Mejoras progresivas: los formularios conservan su funcionamiento sin JavaScript.
 document.querySelectorAll('input[type="password"]').forEach(input=>{

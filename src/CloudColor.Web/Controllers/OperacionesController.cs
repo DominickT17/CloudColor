@@ -108,7 +108,9 @@ public sealed class OperacionesController(Aplicacion app):Controller
     public IActionResult VerFactura(int id)
     {
         var f=app.Fase2.Facturas().SingleOrDefault(x=>x.FacturaID==id);if(f==null)return NotFound();
-        return View(Request.Path.Value!.Contains("Imprimir")?"Imprimir":"Detalle",new DetalleDocumentoVm("Facturas",Fila(f),app.Fase2.FacturaDetalle(id),[],app.Fase2.FacturaPagos(id),[],f.Emisor,f.NIT));
+        var detalle=app.Fase2.FacturaDetalle(id);var pagos=app.Fase2.FacturaPagos(id);
+        var lotes=User.IsInRole("Gerente")?app.Fase2.FacturaLotes(id):[];
+        return View(Request.Path.Value!.Contains("Imprimir")?"Imprimir":"Detalle",new DetalleDocumentoVm("Facturas",Fila(f),detalle,[],pagos,[],f.Emisor,f.NIT,f.UsuarioEmisor,lotes,f.TotalOriginal));
     }
     [Authorize(Roles=Ingreso),HttpGet("/Recepciones/Nueva/{id:int}")]
     public IActionResult Recibir(int id)
@@ -170,5 +172,93 @@ public sealed class OperacionesController(Aplicacion app):Controller
         if(ubicacion.HasValue)filas=filas.Where(x=>x.Lote.UbicacionID==ubicacion).ToList();
         var sinIngresos=variantes.Where(v=>!totales.ContainsKey(v.ProductoVarianteID)&&(!variante.HasValue||v.ProductoVarianteID==variante)&&(string.IsNullOrWhiteSpace(buscar)||v.Producto.Contains(buscar,StringComparison.OrdinalIgnoreCase)||v.CodigoSKU.Contains(buscar,StringComparison.OrdinalIgnoreCase))&&!bodega.HasValue&&!ubicacion.HasValue&&(string.IsNullOrEmpty(estado)||estado=="Sin stock")).ToList();
         return View(new InventarioVm(filas,variantes,bodegas,buscar,variante,bodega,estado,ubicaciones,ubicacion,sinIngresos,variantes.Count(v=>totales.GetValueOrDefault(v.ProductoVarianteID)>0&&totales.GetValueOrDefault(v.ProductoVarianteID)<v.StockMinimo),variantes.Count(v=>totales.GetValueOrDefault(v.ProductoVarianteID)<=0)));
+    }
+    [Authorize(Roles="Gerente"),HttpGet("/Reportes/Ventas"),HttpGet("/Reportes/Productos")]
+    public IActionResult ReporteVentas(DateTime? desde,DateTime? hasta,string? vista,int? limite)
+    {
+        var fin=hasta?.Date??DateTime.Today;
+        var inicio=desde?.Date??fin.AddDays(-29);
+        string tipo=vista switch{"mas-vendidos"=>"MAS_VENDIDOS","mayores-ingresos"=>"MAYORES_INGRESOS","menos-vendidos"=>"MENOS_VENDIDOS",_=>"VENTAS"};
+        try
+        {
+            if(tipo!="VENTAS") limite ??= 5;
+            var resumen=app.Fase2.ReporteVentas(inicio,fin);
+            var filas=tipo=="VENTAS"?[]:app.Fase2.ReporteProductos(inicio,fin,tipo,limite)
+                .Select(p=>new ReporteProducto(p.Producto,p.CodigoSKU,p.Presentacion,p.Color,p.CantidadVendida,p.Ingresos)).ToList();
+            return View(new ReporteVentasVm(inicio,fin,resumen.TotalFacturado,resumen.TotalEfectivo,resumen.TotalCheque,
+                resumen.TotalTarjeta,resumen.CantidadFacturas,tipo,limite,filas,true));
+        }
+        catch(ArgumentException ex){return BadRequest(ex.Message);}
+    }
+
+    [Authorize(Roles="Gerente"),HttpGet("/Reportes/Inventario")]
+    public IActionResult ReporteInventario()=>View("ReporteSinStock",new ReporteSinStockVm(app.Fase2.ReporteSinStock()));
+
+    [Authorize(Roles="Gerente"),HttpGet("/Reportes/Factura")]
+    public IActionResult ReporteFactura(string? buscar)=>Redirect("/Facturas"+(string.IsNullOrWhiteSpace(buscar)?"":"?buscar="+Uri.EscapeDataString(buscar)));
+
+    [Authorize(Roles="Gerente"),HttpGet("/Facturas/Anular/{id:int}")]
+    public IActionResult AnularFactura(int id)
+    {
+        var factura=app.Fase2.Facturas().SingleOrDefault(x=>x.FacturaID==id);
+        if(factura==null)return NotFound();
+        if(factura.Estado=="ANULADA")return Redirect("/Facturas/Ver/"+id);
+        return View("AnularFactura",factura);
+    }
+
+    [Authorize(Roles="Gerente"),HttpPost("/Facturas/Anular/{id:int}")]
+    public IActionResult AnularFactura(int id,string motivo)
+    {
+        try{app.Fase2.AnularFactura(id,motivo);TempData["Exito"]="Factura anulada; se conservaron sus datos historicos y se restauro el inventario.";}
+        catch(Exception ex) when(ex is ArgumentException or InvalidOperationException){TempData["Error"]=ex.Message;}
+        return Redirect("/Facturas/Ver/"+id);
+    }
+
+    [Authorize(Roles="Gerente"),HttpGet("/Devoluciones")]
+    public IActionResult Devoluciones(string? buscar)=>View(new DevolucionesVm(app.Fase2.Devoluciones(buscar),buscar));
+
+    [Authorize(Roles="Gerente"),HttpGet("/Devoluciones/Nueva")]
+    public IActionResult NuevaDevolucion(int? factura)=>CargarDevolucion(factura,new DevolucionInput{Numero=Numero("DV"),FacturaID=factura??0});
+
+    private IActionResult CargarDevolucion(int? factura,DevolucionInput input)
+    {
+        var facturas=app.Fase2.Facturas().Where(x=>x.Estado!="ANULADA").ToList();
+        var disponibles=new List<LineaDevolucion>();
+        if(factura.HasValue&&factura.Value>0)
+        {
+            if(!facturas.Any(x=>x.FacturaID==factura.Value))return NotFound();
+            try{disponibles=app.Fase2.DevolucionDisponibles(factura.Value);}
+            catch(InvalidOperationException ex){TempData["Error"]=ex.Message;return Redirect("/Devoluciones");}
+            if(input.Lineas.Count==0)input.Lineas=disponibles.Select(x=>new DevolucionLineaInput{DetalleFacturaLoteID=x.DetalleFacturaLoteID}).ToList();
+        }
+        return View("NuevaDevolucion",new DevolucionNuevaVm(facturas,disponibles,input));
+    }
+
+    [Authorize(Roles="Gerente"),HttpPost("/Devoluciones/Nueva")]
+    public IActionResult NuevaDevolucion(DevolucionInput input)
+    {
+        try
+        {
+            var ids=input.Lineas.Where(x=>x.Incluir).Select(x=>x.DetalleFacturaLoteID).ToHashSet();
+            var disponibles=app.Fase2.DevolucionDisponibles(input.FacturaID).Where(x=>ids.Contains(x.DetalleFacturaLoteID)).ToList();
+            foreach(var linea in disponibles)
+            {
+                var entrada=input.Lineas.Single(x=>x.DetalleFacturaLoteID==linea.DetalleFacturaLoteID);
+                linea.CantidadDevuelta=entrada.CantidadDevuelta;
+            }
+            app.Fase2.CrearDevolucion(input.Numero,input.FacturaID,input.Motivo,disponibles);
+            TempData["Exito"]="Devolucion registrada y existencias restituidas a sus lotes de origen.";
+            return Redirect("/Devoluciones");
+        }
+        catch(Exception ex) when(ex is ArgumentException or InvalidOperationException){ModelState.AddModelError("",ex.Message);}
+        return CargarDevolucion(input.FacturaID,input);
+    }
+
+    [Authorize(Roles="Gerente"),HttpGet("/Devoluciones/Ver/{id:int}")]
+    public IActionResult VerDevolucion(int id)
+    {
+        var devolucion=app.Fase2.Devoluciones().SingleOrDefault(x=>x.DevolucionID==id);
+        if(devolucion==null)return NotFound();
+        return View("DetalleDevolucion",new DevolucionDetalleVm(devolucion,app.Fase2.DevolucionDetalle(id)));
     }
 }

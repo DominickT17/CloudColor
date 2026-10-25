@@ -22,7 +22,7 @@
   tbody.addEventListener('input',()=>{cart.dataset.dirty='true';refresh();cart.querySelectorAll('[data-cart-total]').forEach(ccPulse);});
   cart.addEventListener('submit',event=>{
    const action=event.submitter?.value;if(action!=='Agregar'&&!action?.startsWith('Quitar:'))return;event.preventDefault();
-   if(action.startsWith('Quitar:')){const row=tbody.rows[Number(action.split(':')[1])];if(row){row.querySelectorAll('button').forEach(b=>b.disabled=true);const remove=()=>{row.remove();cart.dataset.dirty='true';refresh();};if(matchMedia('(prefers-reduced-motion: reduce)').matches)remove();else{const animation=row.animate([{opacity:1},{opacity:0}],{duration:140});animation.finished.then(remove);}}return;}
+   if(action.startsWith('Quitar:')){const row=tbody.rows[Number(action.split(':')[1])];if(row){row.querySelectorAll('button').forEach(b=>b.disabled=true);const remove=()=>{row.remove();cart.dataset.dirty='true';refresh();};if(matchMedia('(prefers-reduced-motion: reduce)').matches)remove();else{row.classList.add('is-removing');setTimeout(remove,140);}}return;}
    const option=select.selectedOptions[0],q=Number(cart.querySelector('#NuevaCantidad').value),p=Number(cart.querySelector('#NuevoPrecio').value);
    if(!option||select.value==='0'){ccToast('Selecciona una variante disponible.','error');select.focus();return;}
    if(!Number.isFinite(q*p)||q<=0||p<0){ccToast('La cantidad debe ser positiva y el precio no negativo.','error');return;}

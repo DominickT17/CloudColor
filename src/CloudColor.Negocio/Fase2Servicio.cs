@@ -17,6 +17,7 @@ public sealed class Fase2Servicio(Fase2Datos datos,SeguridadServicio seguridad)
         if(s.Rol is not ("Digitador" or "Cajero" or "Gerente")) throw new InvalidOperationException("Perfil no habilitado.");
         return s.UsuarioID;
     }
+    private int ExigirGerente() => seguridad.ExigirGerente().UsuarioID;
     private static string? Buscar(string? texto) => Validacion.Texto(texto,"Busqueda",180,false);
     private static string Numero(string texto) => Validacion.Texto(texto,"Numero",30,true)!;
     private static string? Observaciones(string? texto) => Validacion.Texto(texto,"Observaciones",300,false);
@@ -90,6 +91,41 @@ public sealed class Fase2Servicio(Fase2Datos datos,SeguridadServicio seguridad)
     public List<Factura> Facturas(string? buscar=null) => datos.Facturas(ExigirConsultaFactura(),Buscar(buscar));
     public List<LineaVenta> FacturaDetalle(int id) => datos.FacturaDetalle(ExigirConsultaFactura(),id);
     public List<Pago> FacturaPagos(int id) => datos.FacturaPagos(ExigirConsultaFactura(),id);
+    public List<LoteFactura> FacturaLotes(int id) => datos.LotesFactura(ExigirGerente(),id);
+    public ResumenVentas ReporteVentas(DateTime desde,DateTime hasta)
+    {
+        int actor=ExigirGerente();Rango(desde,hasta);return datos.ReporteVentas(actor,desde.Date,hasta.Date);
+    }
+    public List<ProductoReporte> ReporteProductos(DateTime desde,DateTime hasta,string tipo,int? limite)
+    {
+        int actor=ExigirGerente();Rango(desde,hasta);
+        if(tipo is not ("MAS_VENDIDOS" or "MAYORES_INGRESOS" or "MENOS_VENDIDOS"))throw new ArgumentException("Seleccione un tipo de reporte valido.");
+        if(limite is not (null or 0 or 5 or 10))throw new ArgumentException("Seleccione 5, 10 o Todos.");
+        return datos.ReporteProductos(actor,desde.Date,hasta.Date,tipo,limite);
+    }
+    public List<VarianteSinStock> ReporteSinStock() => datos.ReporteSinStock(ExigirGerente());
+    private static void Rango(DateTime desde,DateTime hasta)
+    {
+        if(desde.Date>hasta.Date)throw new ArgumentException("La fecha inicial no puede ser posterior a la fecha final.");
+        if((hasta.Date-desde.Date).TotalDays>3660)throw new ArgumentException("El rango maximo de consulta es de diez anos.");
+    }
+    public void AnularFactura(int factura,string? motivo)
+    {
+        int actor=ExigirGerente();Identificador(factura,"factura");
+        motivo=Validacion.Texto(motivo,"Motivo de anulacion",300,true)!;
+        datos.AnularFactura(actor,factura,motivo);
+    }
+    public List<LineaDevolucion> DevolucionDisponibles(int factura) => datos.DevolucionDisponibles(ExigirGerente(),factura);
+    public List<Devolucion> Devoluciones(string? buscar=null) => datos.Devoluciones(ExigirGerente(),Buscar(buscar));
+    public List<LineaDevolucion> DevolucionDetalle(int devolucion) => datos.DevolucionDetalle(ExigirGerente(),devolucion);
+    public int CrearDevolucion(string numero,int factura,string? motivo,List<LineaDevolucion> lineas)
+    {
+        int actor=ExigirGerente();Identificador(factura,"factura");numero=Numero(numero);
+        motivo=Validacion.Texto(motivo,"Motivo de devolucion",300,true)!;
+        Unicos(lineas.Select(x=>x.DetalleFacturaLoteID));
+        foreach(var linea in lineas){Identificador(linea.DetalleFacturaLoteID,"linea vendida");Cantidad(linea.CantidadDevuelta);}
+        return datos.CrearDevolucion(actor,numero,factura,motivo,lineas);
+    }
     public int Facturar(string numero,int cliente,List<LineaVenta> lineas,int? cotizacion=null)
     {
         int actor=ExigirIngreso(); Identificador(cliente,"cliente");

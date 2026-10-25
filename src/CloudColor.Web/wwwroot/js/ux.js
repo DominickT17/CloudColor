@@ -40,7 +40,7 @@
   const validate=()=>{if(input.disabled)return;const v=input.validity,valid=v.valid;hint.hidden=valid;hint.textContent=valid?'':v.valueMissing?'Completa este campo.':v.typeMismatch?'Revisa el formato de este campo.':v.rangeUnderflow?'El mínimo permitido es '+input.min+'.':v.rangeOverflow?'El máximo permitido es '+input.max+'.':v.stepMismatch?'Revisa la precisión del importe o cantidad.':'Revisa este valor antes de guardar.';input.setAttribute('aria-invalid',String(!valid));input.setAttribute('aria-describedby',(originalDescription+' '+hint.id).trim());};
   input.addEventListener('blur',validate);input.addEventListener('input',validate);
  }));
- // Búsqueda en la cabecera: no hay atajo para abrirla.
+ // Búsqueda global: Ctrl/Cmd+K la abre desde cualquier pantalla.
  const search=$('.global-search'),query=$('#global-query'),results=$('#global-results');
  const clear=$('.search-clear'),status=$('#search-status');let delay,request;
  const closeSearch=()=>{if(!results)return;results.hidden=true;query.setAttribute('aria-expanded','false');clearTimeout(delay);request?.abort();};
@@ -74,6 +74,14 @@
  };
  query?.addEventListener('input',scheduleSearch);
  query?.addEventListener('focus',()=>{if(query.value.trim().length>=2&&results.hidden)scheduleSearch();});
+ document.addEventListener('keydown',e=>{
+  const shortcut=(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k';
+  if(!shortcut)return;
+  e.preventDefault();
+  if(!query)return;
+  if(document.activeElement===query){query.value='';closeSearch();clear.hidden=true;status.textContent='Búsqueda limpia.';}
+  else{query.focus();query.select();}
+ });
  clear?.addEventListener('click',()=>{query.value='';closeSearch();clear.hidden=true;status.textContent='Búsqueda limpia.';query.focus();});
  search?.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&!results.hidden){e.preventDefault();e.stopPropagation();query.focus();closeSearch();return;}
@@ -85,6 +93,8 @@
  document.addEventListener('click',e=>{if(search&&!search.contains(e.target))closeSearch();if(session&&!session.contains(e.target))session.open=false;});
  search?.addEventListener('focusout',()=>setTimeout(()=>{if(!search.contains(document.activeElement))closeSearch();},0));
  document.querySelectorAll('[data-close-dialog]').forEach(b=>b.addEventListener('click',()=>b.closest('dialog').close()));
+ document.querySelectorAll('[data-open-dialog]').forEach(b=>b.addEventListener('click',()=>document.getElementById(b.dataset.openDialog)?.showModal()));
+ document.querySelectorAll('[data-report-limit]').forEach(s=>s.addEventListener('change',()=>{if(s.value)location.assign(s.value);}));
  document.addEventListener('keydown',e=>{
   if(e.altKey&&e.key.toLowerCase()==='n'&&!e.target.matches('input,textarea,select')&&!$('dialog[open]')){const link=$('.page-heading a[href*="/Nueva"],.page-heading a[href*="/Editar"]');if(link){e.preventDefault();link.click();}}
   if(e.key==='Tab'){
@@ -98,7 +108,7 @@
  const newLink=$('.page-heading a[href*="/Nueva"],.page-heading a[href*="/Editar"]');if(newLink)newLink.title='Nuevo registro · Alt N';
  // Animaciones breves de presentación; el valor accesible conserva siempre el total real.
  const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
- window.ccPulse=element=>{if(element&&!reduced.matches)element.animate([{backgroundColor:'#eeedf8'},{backgroundColor:'transparent'}],{duration:300});};
+ window.ccPulse=element=>{if(element&&!reduced.matches){element.classList.add('is-highlighted');setTimeout(()=>element.classList.remove('is-highlighted'),300);}};
  document.querySelectorAll('.metric-number').forEach(element=>{
   const original=element.textContent,value=Number(original.replace(/,/g,''));if(reduced.matches||!Number.isFinite(value)||value===0)return;
   const decimals=original.includes('.')?original.split('.')[1].length:0,formatter=new Intl.NumberFormat('es-GT',{minimumFractionDigits:decimals,maximumFractionDigits:decimals});

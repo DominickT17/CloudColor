@@ -85,6 +85,7 @@ public sealed class Factura
     public decimal TotalOriginal { get; set; }
     public decimal TotalActual { get; set; }
     public string Emisor { get; set; } = "";
+    public string UsuarioEmisor { get; set; } = "";
 }
 public sealed class Pago
 {
@@ -93,6 +94,7 @@ public sealed class Pago
     public decimal Monto { get; set; }
     public string? Referencia { get; set; }
     public DateTime? FechaHora { get; set; }
+    public string Cajero { get; set; } = "";
 }
 public sealed class OrdenCompra
 {
@@ -160,4 +162,85 @@ public sealed class Existencia
     public decimal CantidadInicial { get; set; }
     public decimal CantidadDisponible { get; set; }
     public decimal CostoUnitario { get; set; }
+}
+
+public sealed class ResumenVentas
+{
+    public decimal TotalFacturado { get; set; }
+    public decimal TotalEfectivo { get; set; }
+    public decimal TotalCheque { get; set; }
+    public decimal TotalTarjeta { get; set; }
+    public int CantidadFacturas { get; set; }
+}
+
+public sealed class ProductoReporte
+{
+    public int ProductoVarianteID { get; set; }
+    public string Producto { get; set; } = "";
+    public string CodigoSKU { get; set; } = "";
+    public string Presentacion { get; set; } = "";
+    public string? Color { get; set; }
+    public decimal CantidadVendida { get; set; }
+    public decimal Ingresos { get; set; }
+}
+
+public sealed class VarianteSinStock
+{
+    public int ProductoVarianteID { get; set; }
+    public string Producto { get; set; } = "";
+    public string CodigoSKU { get; set; } = "";
+    public string Presentacion { get; set; } = "";
+    public string? Color { get; set; }
+    public decimal Disponible { get; set; }
+    public decimal StockMinimo { get; set; }
+    public string Estado { get; set; } = "";
+    public string? Proveedor { get; set; }
+}
+
+public sealed class LineaDevolucion
+{
+    public int DetalleFacturaLoteID { get; set; }
+    public int DetalleFacturaID { get; set; }
+    public int ProductoVarianteID { get; set; }
+    public string CodigoSKU { get; set; } = "";
+    public string Producto { get; set; } = "";
+    public string Presentacion { get; set; } = "";
+    public string? Color { get; set; }
+    public decimal PrecioUnitario { get; set; }
+    public decimal CantidadSalida { get; set; }
+    public decimal CantidadDevuelta { get; set; }
+    public decimal CantidadDisponible { get; set; }
+    public string? NumeroLoteProveedor { get; set; }
+    public DateTime FechaIngreso { get; set; }
+    public string Ubicacion { get; set; } = "";
+    public string Bodega { get; set; } = "";
+}
+
+public sealed class Devolucion
+{
+    public int DevolucionID { get; set; }
+    public string NumeroDevolucion { get; set; } = "";
+    public int FacturaID { get; set; }
+    public string NumeroFactura { get; set; } = "";
+    public DateTime FechaHora { get; set; }
+    public string Motivo { get; set; } = "";
+    public string Usuario { get; set; } = "";
+    public int Lineas { get; set; }
+    public decimal CantidadDevuelta { get; set; }
+}
+
+public sealed class LoteFactura
+{
+    public int DetalleFacturaID { get; set; }
+    public string CodigoSKU { get; set; } = "";
+    public string Producto { get; set; } = "";
+    public string Presentacion { get; set; } = "";
+    public string? Color { get; set; }
+    public string? NumeroLoteProveedor { get; set; }
+    public DateTime FechaIngreso { get; set; }
+    public string Ubicacion { get; set; } = "";
+    public string Bodega { get; set; } = "";
+    public decimal CantidadSalida { get; set; }
+    public decimal CantidadDevuelta { get; set; }
+    public decimal CantidadNeta { get; set; }
 }

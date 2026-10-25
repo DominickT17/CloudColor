@@ -15,7 +15,7 @@ public sealed class DocumentoInput
     public decimal NuevoPrecio {get;set;}
 }
 public sealed record EditorDocumentoVm(string Ruta,string Titulo,DocumentoInput Input,List<Opcion> Personas,List<ProductoVariante> Variantes,Dictionary<int,decimal> Disponible);
-public sealed record DetalleDocumentoVm(string Ruta,DocumentoFila Documento,List<LineaVenta> Venta,List<LineaCompra> Compra,List<Pago> Pagos,List<Recepcion> Recepciones,string? Emisor=null,string? NIT=null);
+public sealed record DetalleDocumentoVm(string Ruta,DocumentoFila Documento,List<LineaVenta> Venta,List<LineaCompra> Compra,List<Pago> Pagos,List<Recepcion> Recepciones,string? Emisor=null,string? NIT=null,string? UsuarioEmisor=null,List<LoteFactura>? Lotes=null,decimal? TotalOriginal=null);
 public sealed class RecepcionInput
 {
     public string Numero {get;set;}="";
@@ -43,6 +43,25 @@ public sealed class CobroInput
 }
 public sealed record CobroVm(Factura Factura,List<Pago> Existentes,List<Catalogo> Medios,CobroInput Input,List<LineaVenta> Detalle);
 public sealed record RecepcionDetalleVm(OrdenCompra Orden,List<Recepcion> Lineas,List<LineaCompra> Detalle);
+public sealed record ReporteProducto(string Producto,string CodigoSKU,string Presentacion,string? Color,decimal Cantidad,decimal Ingresos);
+public sealed record ReporteVentasVm(DateTime Desde,DateTime Hasta,decimal TotalFacturado,decimal Efectivo,decimal Cheque,decimal Tarjeta,int CantidadFacturas,string Vista,int? Limite,List<ReporteProducto> Productos,bool Consultado);
+public sealed record ReporteSinStockVm(List<VarianteSinStock> Filas);
+public sealed class DevolucionInput
+{
+    public string Numero {get;set;}="";
+    public int FacturaID {get;set;}
+    public string Motivo {get;set;}="";
+    public List<DevolucionLineaInput> Lineas {get;set;}=[];
+}
+public sealed class DevolucionLineaInput
+{
+    public bool Incluir {get;set;}
+    public int DetalleFacturaLoteID {get;set;}
+    public decimal CantidadDevuelta {get;set;}
+}
+public sealed record DevolucionNuevaVm(List<Factura> Facturas,List<LineaDevolucion> Disponibles,DevolucionInput Input);
+public sealed record DevolucionesVm(List<Devolucion> Filas,string? Buscar);
+public sealed record DevolucionDetalleVm(Devolucion Devolucion,List<LineaDevolucion> Lineas);
 public sealed record InventarioFila(Existencia Lote,decimal TotalVariante,decimal Minimo)
 {
     public string Estado=>TotalVariante<=0?"Sin stock":TotalVariante<Minimo?"Stock bajo":"Stock normal";

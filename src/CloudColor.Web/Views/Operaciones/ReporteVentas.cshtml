@@ -1,0 +1,68 @@
+@model ReporteVentasVm
+@{
+    ViewData["Title"] = "Reportes";
+    var hoy = DateTime.Today;
+    var esVentas = Model.Vista == "VENTAS";
+    var esMas = Model.Vista == "MAS_VENDIDOS";
+    var esIngresos = Model.Vista == "MAYORES_INGRESOS";
+    var titulo = esVentas ? "Ventas por período" : esMas ? "Productos más vendidos" : esIngresos ? "Productos con mayores ingresos" : "Productos menos vendidos";
+    var vistaUrl = esVentas ? "ventas" : esMas ? "mas-vendidos" : esIngresos ? "mayores-ingresos" : "menos-vendidos";
+    string UrlReporte(string vista, DateTime desde, DateTime hasta, int? limite = null) => Url.Action("ReporteVentas", new { desde = desde.ToString("yyyy-MM-dd"), hasta = hasta.ToString("yyyy-MM-dd"), vista, limite }) ?? "/Reportes/Ventas";
+    var filas = Model.Productos;
+}
+<div class="page-heading">
+    <div><span class="eyebrow">ANÁLISIS COMERCIAL · GERENCIA</span><h1>@titulo</h1><p>Consulta información registrada, con importes históricos de cada venta.</p></div>
+    <div class="report-heading-actions"><span class="date-label">@Model.Desde.ToString("d MMM yyyy") — @Model.Hasta.ToString("d MMM yyyy")</span><button class="button" type="button" data-export-report data-report-name="@vistaUrl" data-report-from="@Model.Desde.ToString("yyyy-MM-dd")" data-report-to="@Model.Hasta.ToString("yyyy-MM-dd")">Descargar CSV</button></div>
+</div>
+<span class="sr-only" role="status" aria-live="polite" data-export-status></span>
+<nav class="report-tabs" aria-label="Reportes comerciales">
+    <a class="@(esVentas ? "active" : "")" aria-current="@(esVentas ? "page" : null)" href="@UrlReporte("ventas", Model.Desde, Model.Hasta)">Ventas</a>
+    <a class="@(esMas ? "active" : "")" aria-current="@(esMas ? "page" : null)" href="@UrlReporte("mas-vendidos", Model.Desde, Model.Hasta)">Más vendidos</a>
+    <a class="@(esIngresos ? "active" : "")" aria-current="@(esIngresos ? "page" : null)" href="@UrlReporte("mayores-ingresos", Model.Desde, Model.Hasta)">Mayores ingresos</a>
+    <a class="@(Model.Vista == "MENOS_VENDIDOS" ? "active" : "")" aria-current="@(Model.Vista == "MENOS_VENDIDOS" ? "page" : null)" href="@UrlReporte("menos-vendidos", Model.Desde, Model.Hasta)">Menos vendidos</a>
+    <a href="/Reportes/Inventario">Sin stock</a>
+</nav>
+<section class="card report-filter">
+    <div><h2>Período del informe</h2><p>Las fechas incluyen el día completo.</p><span class="report-filter-label">Períodos rápidos</span></div>
+    <div class="report-filter-controls">
+        <nav class="report-presets" aria-label="Períodos rápidos">
+            <a class="button" href="@UrlReporte(vistaUrl, hoy.AddDays(-6), hoy, Model.Limite)">Últimos 7 días</a>
+            <a class="button" href="@UrlReporte(vistaUrl, hoy.AddDays(-29), hoy, Model.Limite)">Últimos 30 días</a>
+            <a class="button" href="@UrlReporte(vistaUrl, new DateTime(hoy.Year, hoy.Month, 1), hoy, Model.Limite)">Este mes</a>
+            <a class="button" href="@UrlReporte(vistaUrl, new DateTime(hoy.Year, 1, 1), hoy, Model.Limite)">Este año</a>
+        </nav>
+        <form method="get" action="/Reportes/Ventas" class="report-date-form">
+            <label class="field"><span>Fecha inicial</span><input type="date" name="desde" value="@Model.Desde.ToString("yyyy-MM-dd")" required /></label>
+            <label class="field"><span>Fecha final</span><input type="date" name="hasta" value="@Model.Hasta.ToString("yyyy-MM-dd")" required /></label>
+            <input type="hidden" name="vista" value="@vistaUrl" />
+            @if (Model.Limite.HasValue) { <input type="hidden" name="limite" value="@Model.Limite" /> }
+            <button class="button primary" type="submit">Aplicar fechas</button>
+        </form>
+    </div>
+</section>
+@if (esVentas)
+{
+    <section class="metrics report-metrics" aria-label="Resumen de ventas">
+        <article class="metric card"><span>Total facturado</span><strong class="metric-number">Q @Model.TotalFacturado.ToString("N2")</strong><small>Ventas no anuladas</small></article>
+        <article class="metric card"><span>Efectivo</span><strong class="metric-number">Q @Model.Efectivo.ToString("N2")</strong><small>Pagos registrados</small></article>
+        <article class="metric card"><span>Cheque</span><strong class="metric-number">Q @Model.Cheque.ToString("N2")</strong><small>Pagos registrados</small></article>
+        <article class="metric card"><span>Tarjeta</span><strong class="metric-number">Q @Model.Tarjeta.ToString("N2")</strong><small>Pagos registrados</small></article>
+    </section>
+    <section class="card report-note"><span class="report-note-mark">i</span><p><strong>@Model.CantidadFacturas</strong> facturas emitidas en el período. El total puede incluir facturas pendientes de cobro; los medios reflejan los pagos aplicados. Las facturas anuladas se excluyen.</p></section>
+}
+else
+{
+    <section class="card report-table-card">
+        <div class="section-heading padded report-table-heading"><div><h2>@titulo</h2><p class="muted">@(esMas ? "Orden por unidades netas vendidas." : esIngresos ? "Orden por ingresos calculados con el precio histórico." : "Incluye variantes sin ventas en el período.")</p></div>
+            <label class="field report-limit"><span>Mostrar</span><select data-report-limit><option value="@UrlReporte(vistaUrl, Model.Desde, Model.Hasta, 5)" selected="@(Model.Limite == 5)">Top 5</option><option value="@UrlReporte(vistaUrl, Model.Desde, Model.Hasta, 10)" selected="@(Model.Limite == 10)">Top 10</option><option value="@UrlReporte(vistaUrl, Model.Desde, Model.Hasta, 0)" selected="@(Model.Limite is null or 0)">Todos</option></select></label>
+        </div>
+        @if (filas.Count == 0) { <div class="empty compact"><h3>Sin datos para mostrar</h3><p>Prueba otro rango de fechas.</p></div> }
+        else
+        {
+            <div class="table-wrap"><table><thead><tr><th>#</th><th>Producto</th><th>Variante</th><th>Unidades</th><th>Ingresos</th></tr></thead><tbody>
+            @{ var n = 0; }
+            @foreach (var f in filas) { n++; <tr><td>@n</td><td><strong>@f.Producto</strong><small>@f.CodigoSKU</small></td><td>@f.Presentacion<small>@(f.Color ?? "Sin color")</small></td><td>@f.Cantidad.ToString("N2")</td><td>Q @f.Ingresos.ToString("N2")</td></tr> }
+            </tbody></table></div>
+        }
+    </section>
+}

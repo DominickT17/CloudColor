@@ -92,6 +92,7 @@ public sealed class Fase2Datos(AccesoDatos db)
         TotalOriginal=(decimal)r["TotalOriginal"],
         TotalActual=(decimal)r["TotalActual"],
         Emisor=(string)r["Emisor"],
+        UsuarioEmisor=(string)r["UsuarioEmisor"],
     };
     private static Pago LeerPago(SqlDataReader r) => new()
     {
@@ -100,6 +101,7 @@ public sealed class Fase2Datos(AccesoDatos db)
         Monto=(decimal)r["Monto"],
         Referencia=r["Referencia"]==DBNull.Value ? null : (string)r["Referencia"],
         FechaHora=r["FechaHora"]==DBNull.Value ? null : (DateTime)r["FechaHora"],
+        Cajero=(string)r["Cajero"],
     };
     private static OrdenCompra LeerOrdenCompra(SqlDataReader r) => new()
     {
@@ -166,6 +168,48 @@ public sealed class Fase2Datos(AccesoDatos db)
         CantidadDisponible=(decimal)r["CantidadDisponible"],
         CostoUnitario=(decimal)r["CostoUnitario"],
     };
+    private static LineaDevolucion LeerLineaDevolucion(SqlDataReader r) => new()
+    {
+        DetalleFacturaLoteID=(int)r["DetalleFacturaLoteID"],
+        DetalleFacturaID=(int)r["DetalleFacturaID"],
+        ProductoVarianteID=(int)r["ProductoVarianteID"],
+        CodigoSKU=(string)r["CodigoSKU"],Producto=(string)r["Producto"],
+        Presentacion=(string)r["Presentacion"],Color=r["Color"]==DBNull.Value?null:(string)r["Color"],
+        PrecioUnitario=(decimal)r["PrecioUnitario"],CantidadSalida=(decimal)r["CantidadSalida"],
+        CantidadDevuelta=(decimal)r["CantidadDevuelta"],CantidadDisponible=(decimal)r["CantidadDisponible"],
+        NumeroLoteProveedor=r["NumeroLoteProveedor"]==DBNull.Value?null:(string)r["NumeroLoteProveedor"],
+        FechaIngreso=(DateTime)r["FechaIngreso"],Ubicacion=(string)r["Ubicacion"],Bodega=(string)r["Bodega"],
+    };
+    private static ProductoReporte LeerProductoReporte(SqlDataReader r) => new()
+    {
+        ProductoVarianteID=(int)r["ProductoVarianteID"],Producto=(string)r["Producto"],
+        CodigoSKU=(string)r["CodigoSKU"],Presentacion=(string)r["Presentacion"],
+        Color=r["Color"]==DBNull.Value?null:(string)r["Color"],CantidadVendida=(decimal)r["CantidadVendida"],
+        Ingresos=(decimal)r["Ingresos"],
+    };
+    private static VarianteSinStock LeerVarianteSinStock(SqlDataReader r) => new()
+    {
+        ProductoVarianteID=(int)r["ProductoVarianteID"],Producto=(string)r["Producto"],CodigoSKU=(string)r["CodigoSKU"],
+        Presentacion=(string)r["Presentacion"],Color=r["Color"]==DBNull.Value?null:(string)r["Color"],
+        Disponible=(decimal)r["Disponible"],StockMinimo=(decimal)r["StockMinimo"],Estado=(string)r["Estado"],
+        Proveedor=r["Proveedor"]==DBNull.Value?null:(string)r["Proveedor"],
+    };
+    private static Devolucion LeerDevolucion(SqlDataReader r) => new()
+    {
+        DevolucionID=(int)r["DevolucionID"],NumeroDevolucion=(string)r["NumeroDevolucion"],
+        FacturaID=(int)r["FacturaID"],NumeroFactura=(string)r["NumeroFactura"],FechaHora=(DateTime)r["FechaHora"],
+        Motivo=(string)r["Motivo"],Usuario=(string)r["Usuario"],Lineas=(int)r["Lineas"],
+        CantidadDevuelta=(decimal)r["CantidadDevuelta"],
+    };
+    private static LoteFactura LeerLoteFactura(SqlDataReader r) => new()
+    {
+        DetalleFacturaID=(int)r["DetalleFacturaID"],CodigoSKU=(string)r["CodigoSKU"],Producto=(string)r["Producto"],
+        Presentacion=(string)r["Presentacion"],Color=r["Color"]==DBNull.Value?null:(string)r["Color"],
+        NumeroLoteProveedor=r["NumeroLoteProveedor"]==DBNull.Value?null:(string)r["NumeroLoteProveedor"],
+        FechaIngreso=(DateTime)r["FechaIngreso"],Ubicacion=(string)r["Ubicacion"],Bodega=(string)r["Bodega"],
+        CantidadSalida=(decimal)r["CantidadSalida"],CantidadDevuelta=(decimal)r["CantidadDevuelta"],
+        CantidadNeta=(decimal)r["CantidadNeta"],
+    };
     public List<ProductoVariante> Variantes(int actor,string? buscar) => db.Consultar("dbo.sp_ProductoVarianteListar",LeerProductoVariante,Entero("@UsuarioActorID",actor),Texto("@Buscar",180,buscar));
     public List<Bodega> Bodegas(int actor,string? buscar) => db.Consultar("dbo.sp_BodegaListar",LeerBodega,Entero("@UsuarioActorID",actor),Texto("@Buscar",180,buscar));
     public List<Ubicacion> Ubicaciones(int actor,string? buscar) => db.Consultar("dbo.sp_UbicacionListar",LeerUbicacion,Entero("@UsuarioActorID",actor),Texto("@Buscar",180,buscar));
@@ -174,6 +218,21 @@ public sealed class Fase2Datos(AccesoDatos db)
     public List<Factura> Facturas(int actor,string? buscar) => db.Consultar("dbo.sp_FacturaListar",LeerFactura,Entero("@UsuarioActorID",actor),Texto("@Buscar",180,buscar));
     public List<OrdenCompra> Ordenes(int actor,string? buscar) => db.Consultar("dbo.sp_OrdenCompraListar",LeerOrdenCompra,Entero("@UsuarioActorID",actor),Texto("@Buscar",180,buscar));
     public List<Existencia> Inventario(int actor,string? buscar) => db.Consultar("dbo.sp_InventarioListar",LeerExistencia,Entero("@UsuarioActorID",actor),Texto("@Buscar",180,buscar));
+    public List<LoteFactura> LotesFactura(int actor,int factura) => db.Consultar("dbo.sp_FacturaLotes",LeerLoteFactura,Entero("@UsuarioActorID",actor),Entero("@FacturaID",factura));
+    public ResumenVentas ReporteVentas(int actor,DateTime desde,DateTime hasta) => db.Consultar("dbo.sp_ReporteVentas",r=>new ResumenVentas
+    {
+        TotalFacturado=(decimal)r["TotalFacturado"],TotalEfectivo=(decimal)r["TotalEfectivo"],TotalCheque=(decimal)r["TotalCheque"],
+        TotalTarjeta=(decimal)r["TotalTarjeta"],CantidadFacturas=(int)r["CantidadFacturas"],
+    },Entero("@UsuarioActorID",actor),Fecha("@FechaInicio",desde,true),Fecha("@FechaFin",hasta,true)).Single();
+    public List<ProductoReporte> ReporteProductos(int actor,DateTime desde,DateTime hasta,string tipo,int? limite) => db.Consultar("dbo.sp_ReporteProductos",LeerProductoReporte,
+        Entero("@UsuarioActorID",actor),Fecha("@FechaInicio",desde,true),Fecha("@FechaFin",hasta,true),Texto("@Tipo",20,tipo),ID("@Limite",limite));
+    public List<VarianteSinStock> ReporteSinStock(int actor) => db.Consultar("dbo.sp_ReporteSinStock",LeerVarianteSinStock,Entero("@UsuarioActorID",actor));
+    public List<LineaDevolucion> DevolucionDisponibles(int actor,int factura) => db.Consultar("dbo.sp_DevolucionDisponibles",LeerLineaDevolucion,Entero("@UsuarioActorID",actor),Entero("@FacturaID",factura));
+    public List<Devolucion> Devoluciones(int actor,string? buscar) => db.Consultar("dbo.sp_DevolucionListar",LeerDevolucion,Entero("@UsuarioActorID",actor),Texto("@Buscar",180,buscar));
+    public List<LineaDevolucion> DevolucionDetalle(int actor,int devolucion) => db.Consultar("dbo.sp_DevolucionDetalle",LeerLineaDevolucion,Entero("@UsuarioActorID",actor),Entero("@DevolucionID",devolucion));
+    public int CrearDevolucion(int actor,string numero,int factura,string motivo,List<LineaDevolucion> lineas) =>
+        db.Escalar("dbo.sp_DevolucionCrear",Entero("@UsuarioActorID",actor),Texto("@NumeroDevolucion",30,numero),Entero("@FacturaID",factura),Texto("@Motivo",300,motivo),Tabla("@Detalles","TipoDetalleDevolucion",DetalleDevolucion(lineas)));
+    public void AnularFactura(int actor,int factura,string motivo) => db.Ejecutar("dbo.sp_FacturaAnular",Entero("@UsuarioActorID",actor),Entero("@FacturaID",factura),Texto("@Motivo",300,motivo));
     public List<LineaVenta> CotizacionDetalle(int actor,int id) => db.Consultar("dbo.sp_CotizacionDetalle",LeerLineaVenta,Entero("@UsuarioActorID",actor),Entero("@CotizacionID",id));
     public List<LineaVenta> FacturaDetalle(int actor,int id) => db.Consultar("dbo.sp_FacturaDetalle",LeerLineaVenta,Entero("@UsuarioActorID",actor),Entero("@FacturaID",id));
     public List<Pago> FacturaPagos(int actor,int id) => db.Consultar("dbo.sp_FacturaPagos",LeerPago,Entero("@UsuarioActorID",actor),Entero("@FacturaID",id));
@@ -234,6 +293,12 @@ public sealed class Fase2Datos(AccesoDatos db)
         tabla.Columns.Add("NumeroLoteProveedor",typeof(string));
         tabla.Columns.Add("FechaVencimiento",typeof(DateTime));
         foreach(var l in lineas) tabla.Rows.Add(l.DetalleOrdenCompraID,l.CantidadRecibida,l.CostoUnitario,l.UbicacionID,(object?)l.NumeroLoteProveedor ?? DBNull.Value,(object?)l.FechaVencimiento ?? DBNull.Value);
+        return tabla;
+    }
+    private static DataTable DetalleDevolucion(IEnumerable<LineaDevolucion> lineas)
+    {
+        var tabla=new DataTable();tabla.Columns.Add("DetalleFacturaLoteID",typeof(int));tabla.Columns.Add("CantidadDevuelta",typeof(decimal));
+        foreach(var l in lineas) tabla.Rows.Add(l.DetalleFacturaLoteID,l.CantidadDevuelta);
         return tabla;
     }
 }

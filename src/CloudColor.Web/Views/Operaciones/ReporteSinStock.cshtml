@@ -1,0 +1,8 @@
+@model ReporteSinStockVm
+@{ ViewData["Title"] = "Productos sin stock"; }
+<div class="page-heading"><div><span class="eyebrow">REABASTECIMIENTO · GERENCIA</span><h1>Productos que requieren atención.</h1><p>Variantes sin existencias o por debajo del mínimo configurado.</p></div><a class="button" href="/Inventario">Ver inventario completo →</a></div>
+<section class="card report-table-card"><div class="section-heading padded"><div><h2>Stock bajo o agotado</h2><p class="muted">El proveedor se muestra cuando existe una asociación activa.</p></div><span class="badge @(Model.Filas.Count > 0 ? "amber" : "green")">@Model.Filas.Count variantes</span></div>
+@if (Model.Filas.Count == 0) { <div class="empty"><span class="empty-symbol">✓</span><h2>Todo está dentro del mínimo</h2><p>No hay variantes activas con stock bajo.</p></div> }
+else { <div class="table-wrap"><table><thead><tr><th>Producto / SKU</th><th>Presentación / color</th><th>Disponible</th><th>Mínimo</th><th>Estado</th><th>Proveedor</th><th></th></tr></thead><tbody>
+@foreach (var x in Model.Filas) { <tr><td><strong>@x.Producto</strong><small>@x.CodigoSKU</small></td><td>@x.Presentacion<small>@(x.Color ?? "Sin color")</small></td><td>@x.Disponible.ToString("0.####")</td><td>@x.StockMinimo.ToString("0.####")</td><td><span class="badge @(x.Disponible <= 0 ? "red" : "amber")">@x.Estado</span></td><td>@(x.Proveedor ?? "Sin proveedor asociado")</td><td><a class="text-button" href="/Inventario?variante=@x.ProductoVarianteID">Revisar →</a></td></tr> }
+</tbody></table></div> }</section>

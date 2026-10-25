@@ -3,7 +3,7 @@
 <nav class="breadcrumb" aria-label="Ruta"><a href="/@Model.Ruta">@Model.Ruta</a> / @Model.Titulo</nav>
 <div class="page-heading"><div><span class="eyebrow">@(compra?"ABASTECIMIENTO":"VENTAS")</span><h1>@Model.Titulo</h1><p>@(origen?"El cliente y los precios provienen de la cotización confirmada.":"Busca una variante y ajusta cantidades y precios antes de guardar.")</p></div><span class="badge @(origen?"green":"blue")">@(origen?"COTIZACIÓN CONFIRMADA":"BORRADOR")</span></div>
 <form method="post" class="document-form" data-cart="@(!origen?"editable":"readonly")" data-sale="@(!compra?"true":"false")" action="/@Model.Ruta/Nueva">
-@Html.AntiForgeryToken()@if(!ViewData.ModelState.IsValid){<div asp-validation-summary="All" class="validation" role="alert"></div>}
+@Html.AntiForgeryToken()@await Html.PartialAsync("_ValidationSummary")
 @if(origen){<input name="CotizacionId" type="hidden" value="@d.CotizacionId"/>}
 <div class="document-grid"><div class="document-main">
 <section class="card document-section"><div class="section-heading"><h2>01 · Información general</h2><span class="muted">@DateTime.Today.ToString("dd MMM yyyy")</span></div>

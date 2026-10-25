@@ -1,0 +1,11 @@
+@model CloudColor.Entidades.Factura
+@{ ViewData["Title"] = "Anular factura"; }
+<a class="breadcrumb" href="/Facturas/Ver/@Model.FacturaID">← Volver a @Model.NumeroFactura</a>
+<div class="page-heading"><div><span class="eyebrow">ACCIÓN DE GERENCIA</span><h1>Anular factura</h1><p>El documento y su detalle se conservarán para consulta y auditoría.</p></div><span class="badge amber">Requiere motivo</span></div>
+<section class="card spaced"><h2>@Model.NumeroFactura · @Model.Cliente</h2><p class="muted spaced">Total actual: <strong>Q @Model.TotalActual.ToString("N2")</strong>. El inventario vendido se restituirá a sus lotes originales, descontando devoluciones ya registradas.</p>
+@await Html.PartialAsync("_ValidationSummary")
+<form method="post" action="/Facturas/Anular/@Model.FacturaID" data-confirm="Confirma la anulación de @Model.NumeroFactura. Esta operación conservará el historial y restaurará el inventario." data-confirm-title="Anular factura" data-confirm-action="Anular factura">
+@Html.AntiForgeryToken()
+<label class="field"><span>Motivo de anulación</span><textarea name="motivo" maxlength="300" required minlength="5" rows="4" placeholder="Describe por qué se anula esta factura"></textarea></label>
+<div class="form-actions"><a class="button" href="/Facturas/Ver/@Model.FacturaID">Cancelar</a><button class="button danger" type="submit">Anular factura</button></div>
+</form></section>
