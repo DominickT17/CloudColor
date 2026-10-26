@@ -16,7 +16,7 @@ document.addEventListener('keydown',e=>{
  if(!document.body.classList.contains('menu-open'))return;
  if(e.key==='Escape'){e.preventDefault();menu(false);}
  if(e.key==='Tab'){
-  const links=sidebar.querySelectorAll('a[href],button:not([disabled])');
+  const links=[...sidebar.querySelectorAll('a[href],button:not([disabled])')].filter(link=>link.getClientRects().length>0&&!link.closest('details:not([open])'));
   const first=links[0],last=links[links.length-1];
   if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
   else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}

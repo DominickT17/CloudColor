@@ -7,7 +7,18 @@
  const cart=document.querySelector('[data-cart=editable]');
  if(cart){
   const tbody=cart.querySelector('.cart-lines tbody'),select=cart.querySelector('#NuevaVariante'),search=cart.querySelector('#buscar-variante');
+  const isPurchase=cart.dataset.purchase==='true',provider=cart.querySelector('#PersonaId'),loadProvider=cart.querySelector('.purchase-load'),addButton=cart.querySelector('[value="Agregar"]'),saveButton=cart.querySelector('[value="Guardar"]'),loadedProvider=cart.dataset.loadedProvider||'0',providerHelp=cart.querySelector('#proveedor-guia'),variantCount=cart.querySelector('[data-variant-count]');
   const options=[...select.options].slice(1).map(o=>o.cloneNode(true));
+  function syncSupplier(){
+   if(!isPurchase)return;
+   const selected=Boolean(provider?.value),changed=selected&&provider.value!==loadedProvider,enabled=selected&&!changed&&options.length>0;
+   if(loadProvider)loadProvider.disabled=!selected;
+   search.disabled=!enabled;select.disabled=!enabled;addButton.disabled=!enabled;
+   if(providerHelp)providerHelp.textContent=!selected?'Primero elige un proveedor.':changed?(tbody.rows.length?'Cambiar proveedor borrará las líneas actuales. Pulsa cargar y confirma para continuar.':'Pulsa “Cargar variantes del proveedor” para ver su catálogo.'):options.length?options.length+' variantes disponibles para este proveedor.':'Este proveedor no tiene variantes activas asociadas. Revisa Proveedor / variante.';
+   if(variantCount)variantCount.textContent=!selected?'':changed?'Catálogo pendiente de cargar.':options.length?options.length+' variantes disponibles.':'Sin variantes para este proveedor.';
+   search.placeholder=enabled?'Escribe producto, presentación, color o SKU…':selected?'Pulsa Cargar variantes para buscar productos.':'Selecciona primero un proveedor.';
+  }
+  provider?.addEventListener('change',()=>{syncSupplier();refresh();});
   const stock=()=>{const label=cart.querySelector('.availability');if(label)label.textContent=select.value==='0'?'Selecciona una variante para consultar disponibilidad.':'Disponible: '+Number(select.selectedOptions[0]?.dataset.disponible||0).toLocaleString('es-GT')+' unidades · se verifica al emitir.';};
   select.addEventListener('change',stock);stock();
   search.addEventListener('input',()=>{const current=select.value,term=clean(search.value);const filtered=options.filter(o=>clean(o.textContent).includes(term));select.replaceChildren(new Option('Selecciona una variante','0'),...filtered.map(o=>o.cloneNode(true)));if(filtered.some(o=>o.value===current))select.value=current;cart.querySelector('[data-variant-count]').textContent=filtered.length+' variantes coinciden';select.dispatchEvent(new Event('change'));});
@@ -17,7 +28,7 @@
     const q=Number(row.querySelector('.cart-quantity').value),p=Number(row.querySelector('.cart-price').value),subtotal=Number.isFinite(q*p)&&q>=0&&p>=0?Math.round((q*p+Number.EPSILON)*100):0;cents+=subtotal;
     row.querySelector('.cart-subtotal').textContent=money(subtotal/100);row.querySelector('button[value^="Quitar:"]').value='Quitar:'+index;
    });
-   cart.querySelectorAll('[data-cart-count]').forEach(e=>e.textContent=rows.length);cart.querySelectorAll('[data-cart-total]').forEach(e=>e.textContent=money(cents/100));cart.querySelector('.cart-empty').hidden=rows.length>0;cart.querySelector('[value=Guardar]').disabled=rows.length===0;
+   cart.querySelectorAll('[data-cart-count]').forEach(e=>e.textContent=rows.length);cart.querySelectorAll('[data-cart-total]').forEach(e=>e.textContent=money(cents/100));cart.querySelector('.cart-empty').hidden=rows.length>0;saveButton.disabled=rows.length===0||(isPurchase&&(!provider.value||provider.value!==loadedProvider));if(loadProvider){if(rows.length)loadProvider.dataset.confirm='Volver a cargar el catálogo vaciará las líneas actuales. ¿Continuar?';else delete loadProvider.dataset.confirm;}
   }
   tbody.addEventListener('input',()=>{cart.dataset.dirty='true';refresh();cart.querySelectorAll('[data-cart-total]').forEach(ccPulse);});
   cart.addEventListener('submit',event=>{
@@ -35,7 +46,7 @@
    const subtotal=node('td','', 'cart-subtotal');subtotal.dataset.label='Subtotal';row.append(subtotal);
    const actionCell=node('td');actionCell.dataset.label='Acción';const remove=node('button','Quitar','text-button');remove.type='submit';remove.name='accion';remove.value='Quitar:0';remove.formNoValidate=true;remove.setAttribute('aria-label','Quitar '+option.dataset.sku);actionCell.append(remove);row.append(actionCell);tbody.append(row);ccPulse(row);cart.dataset.dirty='true';refresh();ccToast('Variante agregada al borrador.','info');
   });
-  cart.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('#NuevaCantidad,#NuevoPrecio,#buscar-variante')){e.preventDefault();cart.requestSubmit(cart.querySelector('[value=Agregar]'));}});refresh();
+  cart.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('#NuevaCantidad,#NuevoPrecio,#buscar-variante')){e.preventDefault();cart.requestSubmit(cart.querySelector('[value=Agregar]'));}});syncSupplier();refresh();
  }
  const payment=document.querySelector('[data-payment]');
  if(payment){
