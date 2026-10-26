@@ -3,7 +3,7 @@ GO
 SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
-CREATE VIEW dbo.vw_VentasDetalleNeto
+CREATE OR ALTER VIEW dbo.vw_VentasDetalleNeto
 AS
     SELECT f.FacturaID,f.NumeroFactura,f.Fecha,f.Estado,d.DetalleFacturaID,d.ProductoVarianteID,
         v.CodigoSKU,v.Producto,v.Presentacion,v.Color,d.Cantidad AS CantidadOriginal,

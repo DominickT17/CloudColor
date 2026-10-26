@@ -4,7 +4,7 @@ SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
 
-CREATE PROCEDURE dbo.sp_ReporteVentas
+CREATE OR ALTER PROCEDURE dbo.sp_ReporteVentas
     @UsuarioActorID int,@FechaInicio date,@FechaFin date
 AS
 BEGIN
@@ -34,7 +34,7 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE dbo.sp_ReporteProductos
+CREATE OR ALTER PROCEDURE dbo.sp_ReporteProductos
     @UsuarioActorID int,@FechaInicio date,@FechaFin date,@Tipo varchar(20),@Limite int=NULL
 AS
 BEGIN
@@ -67,7 +67,7 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE dbo.sp_ReporteSinStock @UsuarioActorID int
+CREATE OR ALTER PROCEDURE dbo.sp_ReporteSinStock @UsuarioActorID int
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -95,7 +95,7 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE dbo.sp_FacturaLotes @UsuarioActorID int,@FacturaID int
+CREATE OR ALTER PROCEDURE dbo.sp_FacturaLotes @UsuarioActorID int,@FacturaID int
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -120,7 +120,7 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE dbo.sp_FacturaAnular
+CREATE OR ALTER PROCEDURE dbo.sp_FacturaAnular
     @UsuarioActorID int,@FacturaID int,@Motivo varchar(300)
 AS
 BEGIN
@@ -189,7 +189,7 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE dbo.sp_DevolucionDisponibles @UsuarioActorID int,@FacturaID int
+CREATE OR ALTER PROCEDURE dbo.sp_DevolucionDisponibles @UsuarioActorID int,@FacturaID int
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -220,7 +220,7 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE dbo.sp_DevolucionCrear
+CREATE OR ALTER PROCEDURE dbo.sp_DevolucionCrear
     @UsuarioActorID int,@NumeroDevolucion varchar(30),@FacturaID int,@Motivo varchar(300),
     @Detalles dbo.TipoDetalleDevolucion READONLY
 AS
@@ -302,7 +302,7 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE dbo.sp_DevolucionListar @UsuarioActorID int,@Buscar varchar(180)=NULL
+CREATE OR ALTER PROCEDURE dbo.sp_DevolucionListar @UsuarioActorID int,@Buscar varchar(180)=NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -320,7 +320,7 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE dbo.sp_DevolucionDetalle @UsuarioActorID int,@DevolucionID int
+CREATE OR ALTER PROCEDURE dbo.sp_DevolucionDetalle @UsuarioActorID int,@DevolucionID int
 AS
 BEGIN
     SET NOCOUNT ON;
