@@ -1,6 +1,7 @@
 // Solo contra CloudColor.Web.Pruebas --visual, nunca contra datos reales.
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
 const assert=require('node:assert/strict');
+const qaPassword=process.env.CLOUDCOLOR_QA_PASSWORD;assert.ok(qaPassword,'Defina CLOUDCOLOR_QA_PASSWORD solo para la prueba QA.');
 const path=require('node:path');const fs=require('node:fs');
 const output=path.join(process.env.TEMP||'.','CloudColor-Web-Interactividad');fs.mkdirSync(output,{recursive:true});
 (async()=>{
@@ -10,10 +11,11 @@ const output=path.join(process.env.TEMP||'.','CloudColor-Web-Interactividad');fs
   page.on('dialog',dialog=>dialog.accept());
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
   const go=async route=>assert.equal((await page.goto('http://localhost:5256'+route)).status(),200);
-  await go('/Login');await page.getByLabel('Contraseña',{exact:true}).fill('Prueba-Web-Temporal-2026!');
+  await go('/Login');await page.getByLabel('Contraseña',{exact:true}).fill(qaPassword);
   await page.getByRole('button',{name:'Mostrar contraseña',exact:true}).click();assert.equal(await page.locator('#password').getAttribute('type'),'text');
   await page.getByRole('button',{name:'Ocultar contraseña',exact:true}).click();assert.equal(await page.locator('#password').getAttribute('type'),'password');
   await page.getByLabel('Usuario',{exact:true}).fill('web.gerente');await page.getByRole('button',{name:'Iniciar sesión'}).click();await page.waitForURL('**/Dashboard');
+  await go('/Variantes');assert.notEqual(await page.locator('.nav-group').filter({hasText:'CATÁLOGOS'}).getAttribute('open'),null);assert.equal(await page.locator('.nav-link.active').innerText(),'Variantes');
   await go('/Usuarios');const rows=page.locator('tbody tr:not([hidden])'),total=await rows.count();assert.ok(total>=3);
   await page.getByLabel('Filtrar resultados visibles').fill('web.temporal');assert.equal(await rows.count(),1);
   await page.getByLabel('Filtrar resultados visibles').fill('sin coincidencias');assert.equal(await rows.count(),0);assert.match(await page.locator('.table-count').innerText(),/Sin coincidencias/);

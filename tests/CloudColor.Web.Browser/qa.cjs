@@ -1,6 +1,7 @@
 // Ejecutar solo contra el servidor temporal que inicia CloudColor.Web.Pruebas --visual.
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
 const assert=require('node:assert/strict');
+const qaPassword=process.env.CLOUDCOLOR_QA_PASSWORD;assert.ok(qaPassword,'Defina CLOUDCOLOR_QA_PASSWORD solo para la prueba QA.');
 const fs=require('node:fs');const path=require('node:path');
 const origin='http://localhost:5256';
 const output=path.join(process.env.TEMP||process.env.TMPDIR||'.','CloudColor-Web-Capturas');fs.mkdirSync(output,{recursive:true});
@@ -14,7 +15,7 @@ const output=path.join(process.env.TEMP||process.env.TMPDIR||'.','CloudColor-Web
  const go=async route=>{const response=await p.goto(origin+route);assert.equal(response.status(),200,route);};
  const shot=async name=>{await p.waitForFunction(()=>[...document.querySelectorAll('.metric-number[aria-label]')].every(e=>e.textContent===e.getAttribute('aria-label')));await p.screenshot({animations:'disabled',path:path.join(output,name+'.png'),fullPage:true});};
  const postClick=async name=>{console.log('Accion: '+name);await p.getByRole('button',{name,exact:true}).click();if(await p.locator('#confirmar[open]').count())await p.locator('#confirmar').getByRole('button',{name:'Confirmar',exact:true}).click();for(let i=0;i<30&&!new URL(p.url()).pathname.includes('/Ver/');i++)await new Promise(r=>setTimeout(r,100));if(!new URL(p.url()).pathname.includes('/Ver/')){console.log(await p.locator('main').innerText());await shot('error-navegacion');throw new Error('No se guardo: '+name+' '+p.url());}};
- await go('/Login');await shot('01-login');await p.getByLabel('Usuario',{exact:true}).fill('web.gerente');await p.getByLabel('Contraseña',{exact:true}).fill('Prueba-Web-Temporal-2026!');await p.getByRole('button',{name:'Iniciar sesión'}).click();await p.waitForURL('**/Dashboard');
+ await go('/Login');await shot('01-login');await p.getByLabel('Usuario',{exact:true}).fill('web.gerente');await p.getByLabel('Contraseña',{exact:true}).fill(qaPassword);await p.getByRole('button',{name:'Iniciar sesión'}).click();await p.waitForURL('**/Dashboard');
  await go('/Clientes?buscar=Cliente');await p.getByRole('link',{name:'Limpiar búsqueda',exact:true}).click();await p.waitForURL('**/Clientes');assert.equal(await p.locator('#buscar').inputValue(),'');
  await go('/Variantes');assert.ok((await p.locator('tbody').innerText()).includes('Q 29.00'));
  await go('/Clientes/Editar');
