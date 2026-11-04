@@ -9,7 +9,7 @@ Revisión del 4 de noviembre de 2026, en progreso. `Real` significa consulta en 
 | Variantes, bodegas, ubicaciones, proveedor/variante | OK real | OK QA | OK QA | PENDIENTE completar recorrido manual | PENDIENTE navegador por rol | PENDIENTE |
 | Cotizaciones | OK real | OK QA | OK QA, confirmar y facturar | PENDIENTE recorrido manual completo | OK QA HTTP | PENDIENTE |
 | Facturas y consulta | OK real | CORREGIDO: factura pagada real muestra pagos y lotes | OK QA directa, desde cotización e impresión | No aplica | OK QA HTTP | PENDIENTE terminar recorrido manual |
-| Cobros | OK real | OK QA | OK QA múltiple y doble cobro rechazado | No aplica | OK QA HTTP | PENDIENTE revisar cheque y recorrido manual |
+| Cobros | OK real | OK QA | OK QA HTTP: efectivo, tarjeta, cheque con referencia, cobro exacto y doble cobro rechazado | No aplica | OK QA HTTP | PENDIENTE recorrido manual |
 | Devoluciones | OK real | OK QA | OK QA parcial, lote y exceso rechazado | No aplica | OK QA HTTP | PENDIENTE recorrido manual completo |
 | Anulación | OK QA | OK QA | OK QA: motivo, restitución y total cero | No aplica | OK QA HTTP | PENDIENTE recorrido manual completo |
 | Compras y recepciones | OK real | OK QA | OK QA: 75/25, completa y exceso rechazado | PENDIENTE recorrido manual completo | OK QA HTTP | PENDIENTE |

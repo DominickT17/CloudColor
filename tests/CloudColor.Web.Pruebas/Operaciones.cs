@@ -31,9 +31,10 @@ internal static partial class Program
         await Exito(c,"/Facturas/Nueva?cotizacion="+cot,"/Facturas/Nueva",new(){{"Numero","WEB-F-COT"},{"PersonaId",cliente.ToString()},{"CotizacionId",cot.ToString()},{"accion","Guardar"}},"factura desde cotizacion HTTP");int factura=a.Fase2.Facturas().Single().FacturaID;
         Check(a.Fase2.Facturas().Single().TotalOriginal==240,"precio historico tras cambiar precio actual");Check(a.Fase2.Inventario().OrderBy(x=>x.LoteInventarioID).First().CantidadDisponible==63,"PEPS resuelto en SQL desde web");
         await Exito(c,"/Facturas/Nueva","/Facturas/Nueva",Venta("WEB-F-DIRECTA","1"),"factura directa HTTP");Check(a.Fase2.Facturas().Single(x=>x.NumeroFactura=="WEB-F-DIRECTA").CotizacionID==null,"venta directa sin cotizacion artificial");
-        int ef=a.Fase2.Medios().Single(x=>x.Nombre=="Efectivo").ID,tar=a.Fase2.Medios().Single(x=>x.Nombre=="Tarjeta").ID;
-        var pagos=new Dictionary<string,string>{{"accion","Cobrar"},{"Pagos[0].MedioPagoID",ef.ToString()},{"Pagos[0].Monto","100"},{"Pagos[1].MedioPagoID",tar.ToString()},{"Pagos[1].Monto","140"},{"Pagos[1].Referencia","QA-TARJETA"}};
-        await Exito(cajero,"/Cobros/Registrar/"+factura,"/Cobros/Registrar/"+factura,pagos,"Cajero cobra efectivo y tarjeta HTTP");Check(a.Fase2.FacturaPagos(factura).Count==2,"dos pagos persistidos");
+        int ef=a.Fase2.Medios().Single(x=>x.Nombre=="Efectivo").ID,tar=a.Fase2.Medios().Single(x=>x.Nombre=="Tarjeta").ID,cheque=a.Fase2.Medios().Single(x=>x.Nombre=="Cheque").ID;
+        var pagos=new Dictionary<string,string>{{"accion","Cobrar"},{"Pagos[0].MedioPagoID",ef.ToString()},{"Pagos[0].Monto","100"},{"Pagos[1].MedioPagoID",tar.ToString()},{"Pagos[1].Monto","90"},{"Pagos[1].Referencia","QA-TARJETA"},{"Pagos[2].MedioPagoID",cheque.ToString()},{"Pagos[2].Monto","50"},{"Pagos[2].Referencia","QA-CHEQUE"}};
+        await Exito(cajero,"/Cobros/Registrar/"+factura,"/Cobros/Registrar/"+factura,pagos,"Cajero cobra efectivo, tarjeta y cheque HTTP");
+        var pagosGuardados=a.Fase2.FacturaPagos(factura);Check(pagosGuardados.Count==3&&pagosGuardados.Single(x=>x.Medio=="Cheque").Referencia=="QA-CHEQUE"&&pagosGuardados.Sum(x=>x.Monto)==240,"tres pagos y referencia de cheque persistidos");
         var fCotizada=a.Fase2.Facturas().Single(x=>x.FacturaID==factura);
         Check(fCotizada.UsuarioEmisor=="web.gerente"&&a.Fase2.FacturaPagos(factura).Single(x=>x.Medio=="Efectivo").Cajero=="web.cajero","consulta factura conserva emisor y cajero");
         string htmlFactura=await Pagina(c,"/Facturas/Ver/"+factura);Check(htmlFactura.Contains("Usuario emisor: web.gerente")&&htmlFactura.Contains("Cajero")&&htmlFactura.Contains("Lotes e inventario de origen"),"detalle de factura muestra emisor, cajero y lotes al Gerente");
@@ -56,7 +57,7 @@ internal static partial class Program
         directa=a.Fase2.Facturas().Single(x=>x.FacturaID==directa.FacturaID);Check(directa.Estado=="ANULADA"&&directa.TotalOriginal==20&&directa.TotalActual==0,"factura anulada conserva original y total actual cero");
         Check(a.Fase2.Inventario().Where(x=>x.ProductoVarianteID==v).Sum(x=>x.CantidadDisponible)==antesAnular+1,"anulación repone existencias vendidas");
         htmlFactura=await Pagina(c,"/Facturas/Ver/"+directa.FacturaID);Check(htmlFactura.Contains("ANULADA")&&htmlFactura.Contains("Q 0.00"),"consulta refleja badge anulada y total actual cero");
-        using(var r=await Post(cajero,"/Cobros/Registrar/"+factura,"/Cobros/Registrar/"+factura,pagos))Check(r.StatusCode==HttpStatusCode.OK&&a.Fase2.FacturaPagos(factura).Count==2,"cobro repetido rechazado");
+        using(var r=await Post(cajero,"/Cobros/Registrar/"+factura,"/Cobros/Registrar/"+factura,pagos))Check(r.StatusCode==HttpStatusCode.OK&&a.Fase2.FacturaPagos(factura).Count==3,"cobro repetido rechazado");
         foreach(string ruta in new[]{"/Dashboard","/Inventario","/Compras/Ver/"+orden,"/Recepciones/Ver/"+orden,"/Cotizaciones/Ver/"+cot,"/Facturas/Ver/"+factura,"/Facturas/Imprimir/"+factura,"/Cobros","/Usuarios","/Roles","/Empleados"})await Pagina(c,ruta);
         using var digitador=Cliente();await Login(digitador,"web.digitador");
         using(var r=await Post(digitador,"/Dashboard","/Usuarios/Editar/0",new(){{"NombreUsuario","intruso"}}))Check(r.StatusCode==HttpStatusCode.Redirect&&r.Headers.Location!.ToString().Contains("AccesoDenegado"),"Digitador no crea usuarios por POST directo");
