@@ -4,20 +4,20 @@ Revisión del 4 de noviembre de 2026, en progreso. `Real` significa consulta en 
 
 | Módulo | Abre | Consultar | Crear/Acción | Editar | Permisos | Resultado |
 |---|---|---|---|---|---|---|
-| Dashboard | OK real | OK datos y actividad real | OK destinos de tarjetas y actividad real; accesos rápidos abiertos | No aplica | PENDIENTE navegador por rol | PENDIENTE |
+| Dashboard | OK real | OK datos y actividad real | OK destinos de tarjetas y actividad real; accesos rápidos abiertos | No aplica | OK menús Gerente real y Cajero/Digitador QA | PENDIENTE revisión integral |
 | Clientes, proveedores, productos, empleados | OK real | OK QA | OK QA HTTP | OK QA HTTP | PENDIENTE recorrido manual por rol | PENDIENTE |
 | Variantes, bodegas, ubicaciones, proveedor/variante | OK real | OK QA | OK QA | PENDIENTE completar recorrido manual | PENDIENTE navegador por rol | PENDIENTE |
 | Cotizaciones | OK real | OK QA | OK QA, confirmar y facturar | PENDIENTE recorrido manual completo | OK QA HTTP | PENDIENTE |
 | Facturas y consulta | OK real | CORREGIDO: factura pagada real muestra pagos y lotes | OK QA directa, desde cotización e impresión | No aplica | OK QA HTTP | PENDIENTE terminar recorrido manual |
 | Cobros | OK real | OK QA | OK QA HTTP: efectivo, tarjeta, cheque con referencia, cobro exacto y doble cobro rechazado | No aplica | OK QA HTTP | PENDIENTE recorrido manual |
-| Devoluciones | OK real | OK QA | OK QA parcial, lote y exceso rechazado | No aplica | OK QA HTTP | PENDIENTE recorrido manual completo |
-| Anulación | OK QA | OK QA | OK QA: motivo, restitución y total cero | No aplica | OK QA HTTP | PENDIENTE recorrido manual completo |
+| Devoluciones | OK real | OK real: lote disponible; OK detalle QA | OK QA manual parcial, movimiento de entrada; exceso rechazado por HTTP | No aplica | OK QA HTTP | PENDIENTE revisión integral |
+| Anulación | OK diálogo real | OK QA | OK QA manual: motivo, restitución, movimiento y total cero | No aplica | OK QA HTTP | PENDIENTE revisión integral |
 | Compras y recepciones | OK real | OK QA | OK QA: 75/25, completa y exceso rechazado | PENDIENTE recorrido manual completo | OK QA HTTP | PENDIENTE |
 | Inventario y PEPS | OK real | OK QA: lotes, filtros y PEPS | OK QA en venta y devolución | No aplica | OK QA HTTP | PENDIENTE recorrido manual completo |
 | Reportes | OK real | OK QA HTTP | PENDIENTE comprobar todos los filtros y medios manualmente | No aplica | OK QA HTTP | PENDIENTE |
-| Usuarios y roles | OK real | OK QA | OK QA HTTP | OK QA HTTP | OK QA HTTP | PENDIENTE recorrido manual por rol |
+| Usuarios y roles | OK real | OK QA | OK QA HTTP | OK QA HTTP | OK QA HTTP y acceso directo de Cajero/Digitador en navegador | PENDIENTE revisión integral |
 | Búsqueda global | OK real | OK real y QA | No aplica | No aplica | OK QA HTTP | PENDIENTE recorrido manual por rol |
 
-Pruebas aisladas ejecutadas: SQL 01–04, C#/WinForms 116 comprobaciones, concurrencia 125 y web HTTP 164. Las suites de navegador verificaron flujos de venta y compra, 45 vistas adaptables, interactividad en 20 vistas y UX en 85 vistas; no detectaron errores de consola. La base original conservó sus 31 tablas y 119 filas con huella de contenido idéntica tras las suites; no se ejecutó la carga 12. El build Release posterior a los cambios registró 0 errores y 0 advertencias. La suite de concurrencia y la suite web ejecutaron el script 16 en QA; además se ejecutó dos veces consecutivas sin error.
+Pruebas aisladas ejecutadas: SQL 01–04, C#/WinForms 116 comprobaciones, concurrencia 125 y web HTTP 165. Las suites de navegador verificaron flujos de venta y compra, 45 vistas adaptables, interactividad en 20 vistas y UX en 85 vistas; no detectaron errores de consola. En la sesión del 4 de noviembre también se corrigieron el menú activo al filtrar ventas, el título de acceso denegado y el texto del editor vacío de factura. La base original conservó sus 31 tablas y 119 filas con huella de contenido idéntica tras las suites; no se ejecutó la carga 12. El build Release posterior a los cambios registró 0 errores y 0 advertencias. La suite de concurrencia y la suite web ejecutaron el script 16 en QA; además se ejecutó dos veces consecutivas sin error.
 
 Pendientes de cierre: completar botones, formularios, filtros, permisos y consola durante el recorrido manual; validar los cinco tamaños requeridos en las pantallas pendientes; completar y registrar las suites finales; revisar la documentación y seleccionar evidencias. El ZIP final no debe generarse hasta satisfacer todos los criterios de entrega.

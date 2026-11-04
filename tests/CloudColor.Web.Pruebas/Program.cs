@@ -75,6 +75,7 @@ internal static partial class Program
                 }
                 using var cajero=Cliente();await Login(cajero,"web.cajero");
                 using(var r=await cajero.GetAsync("/Clientes"))Check(r.StatusCode==HttpStatusCode.Redirect&&r.Headers.Location!.ToString().Contains("AccesoDenegado"),"Cajero no entra por URL a catalogos");
+                using(var r=await cajero.GetAsync("/AccesoDenegado"))Check(r.StatusCode==HttpStatusCode.Forbidden&&(await r.Content.ReadAsStringAsync()).Contains("Acceso denegado"),"acceso denegado explica el permiso sin mensaje de fallo genérico");
                 await ProbarOperaciones(c,cajero,entorno.Cadena);
                 if(args.Contains("--visual")){Console.WriteLine("QA visual disponible en http://localhost:5256. Cuenta temporal web.gerente. Crear el archivo de cierre indicado para eliminar QA.");string cierre=Path.Combine(Path.GetTempPath(),"CloudColor-Web-QA-"+Environment.ProcessId+".stop");Console.WriteLine("Para cerrar QA, crear: "+cierre);var limite=DateTime.UtcNow.AddMinutes(30);while(!File.Exists(cierre)&&DateTime.UtcNow<limite)await Task.Delay(500);}
                 using(var r=await Post(c,"/Dashboard","/Salir",new()))Check(r.StatusCode==HttpStatusCode.Redirect,"logout POST");

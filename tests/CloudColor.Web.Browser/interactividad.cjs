@@ -16,6 +16,8 @@ const output=path.join(process.env.TEMP||'.','CloudColor-Web-Interactividad');fs
   await page.getByRole('button',{name:'Ocultar contraseña',exact:true}).click();assert.equal(await page.locator('#password').getAttribute('type'),'password');
   await page.getByLabel('Usuario',{exact:true}).fill('web.gerente');await page.getByRole('button',{name:'Iniciar sesión'}).click();await page.waitForURL('**/Dashboard');
   await go('/Variantes');assert.notEqual(await page.locator('.nav-group').filter({hasText:'CATÁLOGOS'}).getAttribute('open'),null);assert.equal(await page.locator('.nav-link.active').innerText(),'Variantes');
+  await go('/Reportes/Productos?vista=ventas');assert.equal(await page.locator('.nav-link.active').innerText(),'Ventas por fechas');
+  await go('/Facturas/Nueva');assert.match(await page.locator('.cart-empty').innerText(),/cantidad y precio/);
   await go('/Usuarios');const rows=page.locator('tbody tr:not([hidden])'),total=await rows.count();assert.ok(total>=3);
   await page.getByLabel('Filtrar resultados visibles').fill('web.temporal');assert.equal(await rows.count(),1);
   await page.getByLabel('Filtrar resultados visibles').fill('sin coincidencias');assert.equal(await rows.count(),0);assert.match(await page.locator('.table-count').innerText(),/Sin coincidencias/);
