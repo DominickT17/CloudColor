@@ -6,6 +6,7 @@
 2. Iniciar CloudColor Web en `http://localhost:5255` o abrir WinForms como alternativa.
 3. Preparar las cuentas de Gerente, Digitador y Cajero en el entorno de presentación. No incluir contraseñas en capturas ni en esta guía.
 4. Verificar que los datos de demostración ya están cargados. No volver a ejecutar scripts de creación sobre una base que contiene datos que deban conservarse.
+5. Verificar que los procedimientos estén sincronizados, incluido `16_Sincronizar_Procedimientos.sql`; consultar el checklist para conocer la revisión pendiente antes de la entrega.
 
 ## Recorrido sugerido
 

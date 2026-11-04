@@ -2,6 +2,10 @@
 
 Fecha de corte: 25 de octubre de 2026. Rama de entrega: `feat/proyecto-final`. Este documento registra el estado que se probó en QA aislado; no implica aprobación académica ni merge.
 
+## Revisión en curso del 4 de noviembre de 2026
+
+En `.\SQLEXPRESS/CloudColorDB` se detectó que `sp_FacturaPagos` no devolvía la columna `Cajero` requerida por Datos. Se actualizaron ese procedimiento y cinco procedimientos de usuarios/roles cuya auditoría estaba desactualizada. Se agregó `database/scripts/16_Sincronizar_Procedimientos.sql` para aplicar las mismas definiciones sobre una instalación que ya tenga los scripts 03 y 10. Una factura pagada real volvió a mostrar su detalle, cajero y lotes. La revisión de entrega sigue en curso; consultar [Checklist_Entrega_Final.md](Checklist_Entrega_Final.md) para distinguir las comprobaciones realizadas de las pendientes. Las cifras y capturas siguientes corresponden al corte anterior cuando no se indique otra fecha.
+
 ## Alcance y arquitectura
 
 CloudColor administra una empresa de pinturas y productos relacionados. La base SQL Server 2022 Express conserva las 31 tablas del modelo relacional aprobado, sin cambios en DBML, nombres, columnas, PK, FK ni cardinalidades. Los módulos cubren identidad y seguridad, catálogos, compras, recepciones, inventario por lote, cotizaciones, facturación, cobros, impresión, devoluciones, anulaciones, reportes y bitácora.
@@ -83,8 +87,9 @@ Para una base nueva, conectar SSMS a `.\SQLEXPRESS` (o a la instancia local conf
 15. `database/scripts/13_Types_ProyectoFinal.sql`
 16. `database/scripts/14_Views_ProyectoFinal.sql`
 17. `database/scripts/15_Procedures_ProyectoFinal.sql`
+18. `database/scripts/16_Sincronizar_Procedimientos.sql`
 
-En una instalación de fase anterior, revisar objetos y ejecutar solo los scripts que falten; no reconstruir ni repetir `CREATE` sobre objetos instalados. El script 12 es opcional y solo para datos de demostración. Las pruebas SQL 01–04 se ejecutan en QA.
+En una instalación de fase anterior, revisar objetos y ejecutar solo los scripts que falten; no reconstruir ni repetir `CREATE` sobre objetos instalados. El script 16 actualiza seis procedimientos existentes y requiere los scripts 03 y 10. El script 12 es opcional y solo para datos de demostración. Las pruebas SQL 01–04 se ejecutan en QA.
 
 Compilar y abrir la web desde la raíz:
 
@@ -98,7 +103,7 @@ Abrir `http://localhost:5255`. La conexión usa `src/CloudColor.Web/appsettings.
 
 ## Pruebas y verificación
 
-Las suites automatizadas crean una base temporal con nombre QA, instalan 00–11 y 13–15, ejecutan pruebas SQL 01–04 y eliminan esa base al terminar. El script de datos 12 no forma parte de la suite automática. Durante este corte se verificó:
+Las suites automatizadas crean una base temporal con nombre QA, instalan 00–11 y 13–16, ejecutan pruebas SQL 01–04 y eliminan esa base al terminar. El script de datos 12 no forma parte de la suite automática. Durante este corte se verificó:
 
 - `dotnet restore .\src\CloudColor.sln`: correcto.
 - `dotnet build .\src\CloudColor.sln -c Release --no-restore --nologo -warnaserror`: 0 errores, 0 advertencias.
