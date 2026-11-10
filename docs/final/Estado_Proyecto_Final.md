@@ -1,5 +1,17 @@
 # Estado final de CloudColor
 
+## Revisión del 9 de noviembre de 2026
+
+El detalle de lo probado está en [Checklist_Entrega_Final.md](Checklist_Entrega_Final.md). El Release se restauró y compiló con 0 errores y 0 advertencias. Las pruebas SQL 01–04 y C#/concurrencia se ejecutaron en una base temporal: 130 comprobaciones, con venta, doble facturación de cotización, doble cobro, recepción excesiva, devolución excesiva y doble anulación concurrentes. La base original se mantuvo en 31 tablas y 119 filas, con huellas de contenido iguales antes y después. Al comparar el esquema con una base creada desde los scripts coincidieron 182 columnas, 31 claves primarias y 43 referencias de claves foráneas en los atributos examinados.
+
+La auditoría de referencias encontró en CloudColorDB los 70 procedimientos y cinco TVP nombrados por Datos. Se compararon las 78 definiciones de procedimientos, vistas y función instaladas con la última definición de los scripts 03–16: no hubo diferencias tras normalizar espacios, comentarios de línea y `CREATE OR ALTER`. También se cotejaron los nombres y el orden de las columnas de los cinco TVP. Una comparación estática de 163 parámetros tipados y de los arreglos de los cuatro catálogos principales no encontró diferencias en los nombres y tipos examinados; no sustituye la ejecución de todos los caminos. Los mensajes de negocio de los procedimientos finales se propagan sin perder la excepción SQL interna. La consulta de factura conserva el contexto del menú Reportes al buscar.
+
+La revisión estática adicional de parámetros requeridos examinó 62 llamadas directas; dos posibles omisiones se resolvieron al inspeccionar el método común de marcas y categorías, que aporta `@UsuarioActorID` a ambas. Esta revisión es una comprobación textual y no reemplaza las pruebas de integración.
+
+La regresión HTTP posterior a las correcciones registró 167 comprobaciones correctas. Edge recorrió cotización, facturación, cobro, compra, recepción, catálogos y permisos; las suites también revisaron interactividad y 85 vistas de 17 rutas a cinco tamaños. Se comprobaron búsquedas de las siete entidades por perfil, filtros de inventario, fechas y límites de reportes.
+
+En Edge se accionaron los 23 enlaces del menú de Gerente y se revisó el desbordamiento a cinco tamaños. Se registró una devolución parcial de una factura que había consumido dos lotes y se anuló después, conservando el total histórico. Se corrigió el formulario para que las cantidades de lotes no seleccionados puedan permanecer en cero, mientras el servidor exige cantidades positivas para las líneas seleccionadas. Las 18 capturas seleccionadas en `evidencias/2026-11-09/` muestran datos ficticios de QA y no sustituyen las pruebas SQL de PEPS ni las de concurrencia.
+
 Fecha de corte: 25 de octubre de 2026. Rama de entrega: `feat/proyecto-final`. Este documento registra el estado que se probó en QA aislado; no implica aprobación académica ni merge.
 
 ## Revisión en curso del 4 de noviembre de 2026

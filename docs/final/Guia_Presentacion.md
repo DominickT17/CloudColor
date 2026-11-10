@@ -6,7 +6,7 @@
 2. Iniciar CloudColor Web en `http://localhost:5255` o abrir WinForms como alternativa.
 3. Preparar las cuentas de Gerente, Digitador y Cajero en el entorno de presentación. No incluir contraseñas en capturas ni en esta guía.
 4. Verificar que los datos de demostración ya están cargados. No volver a ejecutar scripts de creación sobre una base que contiene datos que deban conservarse.
-5. Verificar que los procedimientos estén sincronizados, incluido `16_Sincronizar_Procedimientos.sql`; consultar el checklist para conocer la revisión pendiente antes de la entrega.
+5. Verificar que los procedimientos estén sincronizados, incluido `16_Sincronizar_Procedimientos.sql`; consultar el checklist para conocer el alcance de la revisión realizada.
 
 ## Recorrido sugerido
 
@@ -36,6 +36,14 @@
 - **Gerente:** puede administrar usuarios/roles y supervisar los módulos, reportes, devoluciones y anulaciones.
 
 La UI oculta opciones no autorizadas, pero la aplicación, Negocio y SQL también comprueban el rol. La demostración debe usar sesiones distintas al cambiar de perfil.
+
+## Recorridos breves por curso
+
+**Bases de Datos II.** Mostrar el modelo aprobado de 31 tablas y sus PK/FK; explicar cómo Datos invoca procedimientos parametrizados. Abrir un procedimiento transaccional y señalar TRY/CATCH, COMMIT y ROLLBACK; mostrar un TVP y explicar que transporta varias filas estructuradas y tipadas en una llamada. Seguir cotización, facturación y PEPS (fecha de ingreso e identificador del lote como desempate), cobro, compra, recepción, inventario, devolución o anulación y reportes con precios históricos.
+
+**Programación Web.** Iniciar sesión con los perfiles disponibles, presentar MVC y la navegación, realizar un mantenimiento de catálogo y explicar validaciones de cliente y servidor. Seguir una venta y una compra, consultar un reporte y mostrar la interfaz en móvil. Explicar cookies, antifalsificación y protección de rutas, y describir las pruebas HTTP y de navegador que consten en el checklist.
+
+**Ingeniería de Software II.** Plantear el problema de gestionar ventas, compras y existencias; identificar actores, módulos y requisitos. Explicar las responsabilidades de Web/WinForms, Negocio, Datos, Entidades y SQL Server; consultar la [matriz de trazabilidad](Matriz_Trazabilidad.md), las reglas de seguridad y las pruebas. Presentar el resultado y reconocer cualquier pendiente que figure en el checklist.
 
 ## Evidencias visuales
 

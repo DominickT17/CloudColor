@@ -1,6 +1,6 @@
 # CloudColor
 
-Proyecto Final de Bases de Datos II para administrar una empresa de pinturas y productos relacionados. El alcance implementado cubre Fase I, Fase II y el proyecto final: catálogos, usuarios y roles, compras con entregas parciales, inventario por ubicación y lote, cotizaciones, facturación, cobros, devoluciones, anulaciones, reportes y auditoría. El modelo aprobado conserva exactamente 31 tablas. Esta rama de entrega es `feat/proyecto-final`; todavía requiere revisión humana y no debe confundirse con un merge a `main`.
+Proyecto académico integrado de Bases de Datos II, Programación Web e Ingeniería de Software II para administrar una empresa de pinturas y productos relacionados. El alcance implementado cubre Fase I, Fase II y el proyecto final: catálogos, usuarios y roles, compras con entregas parciales, inventario por ubicación y lote, cotizaciones, facturación, cobros, devoluciones, anulaciones, reportes y auditoría. El modelo aprobado conserva exactamente 31 tablas. La rama de trabajo es `feat/proyecto-final`; el estado de la revisión se registra en el checklist.
 
 ## Tecnología
 
@@ -8,6 +8,7 @@ Proyecto Final de Bases de Datos II para administrar una empresa de pinturas y p
 - SQL Server Management Studio (SSMS) para ejecutar los scripts.
 - DrawDB / DBML para el modelo relacional.
 - Aplicación de escritorio multicapa en C#/.NET 9 y Windows Forms.
+- ASP.NET Core MVC/Razor, HTML, CSS y JavaScript para la presentación web.
 - Microsoft.Data.SqlClient 6.1.6 (ADO.NET), restaurado mediante NuGet.
 
 ## Archivos
@@ -41,6 +42,8 @@ Proyecto Final de Bases de Datos II para administrar una empresa de pinturas y p
 - `docs/fase2/Estado_Fase2.md`: objetos, flujos, permisos, evidencia y guía de revisión.
 - `docs/final/Estado_Proyecto_Final.md`: estado y validación del proyecto final.
 - `docs/final/Guia_Presentacion.md`: recorrido sugerido para la exposición.
+- `docs/final/Matriz_Trazabilidad.md`: relación de requisitos, capas, SQL y pruebas.
+- `docs/final/Checklist_Entrega_Final.md`: alcance probado y pendientes de entrega.
 
 ## Ejecución en SSMS
 
@@ -205,7 +208,7 @@ Gerente conserva administración de Fase I y puede consultar y operar Fase II. D
 
 Fase I, Fase II y Proyecto Final están implementados en esta rama. El documento `docs/fase1/Estado_Fase1.md` y `docs/fase2/Estado_Fase2.md` son snapshots históricos; el estado conjunto está en [Estado_Proyecto_Final.md](docs/final/Estado_Proyecto_Final.md).
 
-La validación final actual se resume en `docs/final/Estado_Proyecto_Final.md`. El Release observado pasó con 0 errores y 0 advertencias; pasaron las suites SQL 01–04, 116 comprobaciones C#, 125 en la pasada de concurrencia, 164 comprobaciones HTTP y 85 vistas de navegador responsivas. La rama `feat/proyecto-final` permanece separada; no se hizo merge a `main`.
+Los resultados de cada revisión y sus límites se registran en [Estado_Proyecto_Final.md](docs/final/Estado_Proyecto_Final.md) y [Checklist_Entrega_Final.md](docs/final/Checklist_Entrega_Final.md). La rama `feat/proyecto-final` permanece separada de `main`.
 
 ## Interfaz web
 
@@ -225,6 +228,6 @@ dotnet build src/CloudColor.sln -c Release --nologo -warnaserror
 dotnet run --project tests/CloudColor.Web.Pruebas -c Release --no-build
 ```
 
-La suite web utiliza una base QA desechable y el puerto 5256; comprueba que los datos originales se conserven. Ejecución, permisos, rutas, pruebas de navegador y capturas se describen en [Estado_Web.md](docs/web/Estado_Web.md) y en el informe final. No se realizó merge ni publicación externa.
+La suite web utiliza una base QA desechable y el puerto 5256; comprueba que los datos originales se conserven. Ejecución, permisos, rutas, pruebas de navegador y capturas se describen en [Estado_Web.md](docs/web/Estado_Web.md) y en el informe final. No se realizó merge a `main`.
 
 La interfaz incorpora búsqueda global por perfil al escribir en la cabecera, notificaciones, confirmaciones, protección de cambios sin guardar, vistas rápidas y filtros con chips. Cotizaciones, facturas directas y compras permiten editar el detalle sin recargar; Cobros calcula la distribución al instante. Dashboard muestra estados reales, Inventario distingue variantes sin ingresos y las tablas se convierten en tarjetas en móvil. Con QA `--visual` abierto, `npm run test:ux --prefix tests/CloudColor.Web.Browser` valida estos recorridos y genera capturas en cinco tamaños.
