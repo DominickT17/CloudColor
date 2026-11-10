@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using CloudColor.Negocio;
 using CloudColor.Entidades;
 internal static partial class Program
@@ -77,8 +78,18 @@ internal static partial class Program
         using(var temporal=Cliente())await Login(temporal,"web.temporal");
         await Exito(c,"/Roles/Editar/"+rolDigitador,"/Roles/Editar/"+rolDigitador,new(){{"Nombre","Rol inventado"},{"Descripcion","Descripcion QA"},{"Activo","true"}},"editar descripcion de rol HTTP");
         Check(a.Seguridad.Roles().Single(x=>x.RolID==rolDigitador).Nombre=="Digitador"&&a.Seguridad.Roles().Count==3,"nombre inmutable y exactamente tres roles");
-        string busqueda=await Pagina(c,"/Buscar?q=WEB");Check(busqueda.Contains("Productos")&&busqueda.Contains("Facturas")&&!busqueda.Contains("PasswordHash"),"busqueda global reutiliza servicios sin secretos");
-        string busquedaCajero=await Pagina(cajero,"/Buscar?q=WEB");Check(busquedaCajero.Contains("Facturas")&&!busquedaCajero.Contains("Productos")&&!busquedaCajero.Contains("Clientes")&&!busquedaCajero.Contains("Proveedores"),"busqueda global respeta perfil Cajero");
+        static HashSet<string> Grupos(string json)
+        {
+            using var documento=JsonDocument.Parse(json);
+            return documento.RootElement.EnumerateArray().Select(g=>g.GetProperty("nombre").GetString()!).ToHashSet();
+        }
+        string busqueda=await Pagina(c,"/Buscar?q=WEB");
+        var gruposEsperados=new HashSet<string>{"Clientes","Proveedores","Productos","Variantes","Cotizaciones","Facturas","Órdenes"};
+        Check(Grupos(busqueda).SetEquals(gruposEsperados)&&!busqueda.Contains("PasswordHash"),"Gerente encuentra las siete entidades sin secretos");
+        string busquedaDigitador=await Pagina(digitador,"/Buscar?q=WEB");
+        Check(Grupos(busquedaDigitador).SetEquals(gruposEsperados),"Digitador busca las siete entidades autorizadas");
+        string busquedaCajero=await Pagina(cajero,"/Buscar?q=WEB");
+        Check(Grupos(busquedaCajero).SetEquals(["Facturas"]),"busqueda global respeta perfil Cajero");
         await Pagina(c,"/Inventario?estado=Stock%20bajo&ubicacion="+u);
         int recepcion=a.Fase2.Recepciones(orden).First().RecepcionCompraID;
         await Pagina(c,"/Recepciones/Detalle/"+recepcion+"?orden="+orden);

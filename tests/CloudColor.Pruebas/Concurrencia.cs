@@ -67,6 +67,32 @@ internal static partial class Program
             }
             Carrera(cadena,admin,(c,t)=>Recibir(c,t,"CONC-R3"),(c,t)=>Recibir(c,t,"CONC-R4"),52051,"recepciones concurrentes respetan cantidad solicitada");
             Comprobar(app.Fase2.OrdenDetalle(orden2)[0].CantidadRecibida==7 && app.Fase2.OrdenDetalle(orden2)[0].CantidadPendiente==3,"F2 una recepcion concurrente y saldo pendiente correcto");
+            var lineaVendida=app.Fase2.DevolucionDisponibles(factura).First();
+            decimal devolver=lineaVendida.CantidadDisponible;
+            SqlCommand Devolver(SqlConnection c,SqlTransaction? tx,string numero)
+            {
+                var cmd=new SqlCommand("dbo.sp_DevolucionCrear",c,tx) { CommandType=CommandType.StoredProcedure,CommandTimeout=15 };
+                cmd.Parameters.Add("@UsuarioActorID",SqlDbType.Int).Value=actor;
+                cmd.Parameters.Add("@FacturaID",SqlDbType.Int).Value=factura;
+                cmd.Parameters.Add("@NumeroDevolucion",SqlDbType.VarChar,30).Value=numero;
+                cmd.Parameters.Add("@Motivo",SqlDbType.VarChar,300).Value="Prueba concurrente";
+                var t=new DataTable(); t.Columns.Add("DetalleFacturaLoteID",typeof(int)); t.Columns.Add("CantidadDevuelta",typeof(decimal));
+                t.Rows.Add(lineaVendida.DetalleFacturaLoteID,devolver);
+                cmd.Parameters.Add(new SqlParameter("@Detalles",SqlDbType.Structured) { TypeName="dbo.TipoDetalleDevolucion",Value=t }); return cmd;
+            }
+            Carrera(cadena,admin,(c,t)=>Devolver(c,t,"CONC-D1"),(c,t)=>Devolver(c,t,"CONC-D2"),52121,"devoluciones concurrentes no exceden lo vendido");
+            Comprobar(app.Fase2.Devoluciones().Count(d=>d.FacturaID==factura)==1,"Proyecto Final una sola devolucion concurrente persistida");
+            SqlCommand Anular(SqlConnection c,SqlTransaction? tx)
+            {
+                var cmd=new SqlCommand("dbo.sp_FacturaAnular",c,tx) { CommandType=CommandType.StoredProcedure,CommandTimeout=15 };
+                cmd.Parameters.Add("@UsuarioActorID",SqlDbType.Int).Value=actor;
+                cmd.Parameters.Add("@FacturaID",SqlDbType.Int).Value=factura;
+                cmd.Parameters.Add("@Motivo",SqlDbType.VarChar,300).Value="Prueba concurrente"; return cmd;
+            }
+            decimal stockAntesAnular=app.Fase2.Inventario().Sum(x=>x.CantidadDisponible);
+            Carrera(cadena,admin,Anular,Anular,52110,"anulaciones concurrentes no duplican la restitucion");
+            var anulada=app.Fase2.Facturas().Single(f=>f.FacturaID==factura);
+            Comprobar(anulada.Estado=="ANULADA" && anulada.TotalActual==0 && app.Fase2.Inventario().Sum(x=>x.CantidadDisponible)==stockAntesAnular+10-devolver,"Proyecto Final anulacion concurrente conserva totales y restituye solo lo pendiente");
         }
     }
     private static void Carrera(string cadena,SqlConnection admin,Func<SqlConnection,SqlTransaction?,SqlCommand> primera,Func<SqlConnection,SqlTransaction?,SqlCommand> segunda,int errorEsperado,string titulo)

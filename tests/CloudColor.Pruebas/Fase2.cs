@@ -170,6 +170,16 @@ internal static partial class Program
             Comprobar(app.Fase2.Inventario().Where(x=>x.ProductoVarianteID==v1).Sum(x=>x.CantidadDisponible)==stockPrevio+2,"Proyecto Final devolución repone inventario");
             var excesoDevolucion=new LineaDevolucion{DetalleFacturaLoteID=lineaDevolucion.DetalleFacturaLoteID,CantidadDevuelta=lineaDevolucion.CantidadDisponible-1};
             Rechaza(()=>app.Fase2.CrearDevolucion("TEST-FINAL-DV-EXCESO",factura.FacturaID,"Exceso",[excesoDevolucion]),"Proyecto Final exceso acumulado en devolución rechazado");
+            try
+            {
+                app.Fase2.CrearDevolucion("TEST-FINAL-DV-EXCESO-2",factura.FacturaID,"Exceso",[excesoDevolucion]);
+                throw new Exception("Se esperaba el rechazo de la devolución excesiva.");
+            }
+            catch(InvalidOperationException ex)
+            {
+                Comprobar(ex.Message.Contains("excede lo vendido") && ex.InnerException is Microsoft.Data.SqlClient.SqlException sql && sql.Number==52121,
+                    "Proyecto Final mensaje de validación conserva causa SQL para diagnóstico");
+            }
             var reporteDesde=DateTime.Today.AddDays(-1);var reporteHasta=DateTime.Today;
             var resumenFinal=app.Fase2.ReporteVentas(reporteDesde,reporteHasta);
             var masVendidos=app.Fase2.ReporteProductos(reporteDesde,reporteHasta,"MAS_VENDIDOS",5);

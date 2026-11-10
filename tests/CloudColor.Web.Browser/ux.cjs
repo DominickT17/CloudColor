@@ -2,7 +2,7 @@
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
 const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');
 const qaPassword=process.env.CLOUDCOLOR_QA_PASSWORD;assert.ok(qaPassword,'Defina CLOUDCOLOR_QA_PASSWORD solo para la prueba QA.');
-const output=path.resolve(__dirname,'..','..','docs','final','evidencias');fs.mkdirSync(output,{recursive:true});
+const output=process.env.CLOUDCOLOR_QA_EVIDENCE_DIR || path.resolve(__dirname,'..','..','docs','final','evidencias');fs.mkdirSync(output,{recursive:true});
 (async()=>{
  const browser=await chromium.launch({channel:'msedge',headless:true});
  try{

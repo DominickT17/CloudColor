@@ -26,6 +26,7 @@ const output=path.join(process.env.TEMP||'.','CloudColor-Web-Interactividad');fs
   const names=await rows.locator('td:first-child').allTextContents();assert.deepEqual(names,[...names].sort(new Intl.Collator('es',{numeric:true,sensitivity:'base'}).compare));
   assert.equal(await page.locator('th[aria-sort="ascending"]').count(),1);
   await page.getByRole('button',{name:'Ordenar por Usuario descendente',exact:true}).click();assert.deepEqual(await rows.locator('td:first-child').allTextContents(),[...names].reverse());
+  await rows.filter({hasText:'web.temporal'}).getByRole('link',{name:'Editar',exact:true}).click();assert.equal(await page.locator('.caps-warning').isVisible(),false);
   await go('/Cotizaciones/Nueva');await page.locator('#NuevaCantidad').fill('2.5');await page.locator('#NuevoPrecio').fill('12.40');assert.match(await page.locator('.line-preview').innerText(),/31\.00/);
   await page.locator('#NuevaCantidad').fill('');assert.match(await page.locator('.line-preview').innerText(),/válidos/);
   await page.locator('#NuevaCantidad').fill('3');await page.locator('#NuevaVariante').selectOption({index:1});assert.match(await page.locator('.line-preview').innerText(),/87\.00/);
