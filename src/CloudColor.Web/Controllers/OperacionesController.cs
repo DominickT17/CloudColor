@@ -195,7 +195,7 @@ public sealed class OperacionesController(Aplicacion app):Controller
     public IActionResult ReporteInventario()=>View("ReporteSinStock",new ReporteSinStockVm(app.Fase2.ReporteSinStock()));
 
     [Authorize(Roles="Gerente"),HttpGet("/Reportes/Factura")]
-    public IActionResult ReporteFactura(string? buscar)=>Redirect("/Facturas"+(string.IsNullOrWhiteSpace(buscar)?"":"?buscar="+Uri.EscapeDataString(buscar)));
+    public IActionResult ReporteFactura(string? buscar)=>Redirect("/Facturas?"+(string.IsNullOrWhiteSpace(buscar)?"":"buscar="+Uri.EscapeDataString(buscar)+"&")+"consulta=1");
 
     [Authorize(Roles="Gerente"),HttpGet("/Facturas/Anular/{id:int}")]
     public IActionResult AnularFactura(int id)
