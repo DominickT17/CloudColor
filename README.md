@@ -212,6 +212,8 @@ Los resultados de cada revisión y sus límites se registran en [Estado_Proyecto
 
 ## Interfaz web
 
+Para la preparación local con Docker Compose del Proyecto Final de Redes II, consulte [docker/README.md](docker/README.md). Esta configuración usa una base y credenciales propias del entorno Docker.
+
 `src/CloudColor.Web` es la presentación ASP.NET Core 9 MVC/Razor que reutiliza Negocio, Entidades, Datos y los objetos SQL de Fase I, Fase II y el Proyecto Final. WinForms permanece en la solución; el modelo de 31 tablas no cambia.
 
 ```powershell

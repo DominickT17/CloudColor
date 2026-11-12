@@ -1,0 +1,73 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Define MSSQL_SA_PASSWORD in .env}
+      TZ: America/Guatemala
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks: [cloudcolor]
+
+  sql-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    entrypoint: ["/bin/bash", "/init/init.sh"]
+    environment:
+      SQLCMDPASSWORD: ${MSSQL_SA_PASSWORD:?Define MSSQL_SA_PASSWORD in .env}
+    volumes:
+      - ./docker/sql:/init:ro
+      - ./database/scripts:/scripts:ro
+    depends_on:
+      sqlserver:
+        condition: service_started
+    networks: [cloudcolor]
+    restart: "no"
+
+  gerente-init:
+    build:
+      context: .
+      dockerfile: docker/gerente/Dockerfile
+    environment:
+      ConnectionStrings__CloudColor: "Server=sqlserver,1433;Database=CloudColorDB;User ID=sa;Password=${MSSQL_SA_PASSWORD:?Define MSSQL_SA_PASSWORD in .env};Encrypt=True;TrustServerCertificate=True;Application Name=CloudColor.Init"
+      CLOUDCOLOR_GERENTE_CODIGO: ${CLOUDCOLOR_GERENTE_CODIGO:?Define CLOUDCOLOR_GERENTE_CODIGO in .env}
+      CLOUDCOLOR_GERENTE_NOMBRES: ${CLOUDCOLOR_GERENTE_NOMBRES:?Define CLOUDCOLOR_GERENTE_NOMBRES in .env}
+      CLOUDCOLOR_GERENTE_APELLIDOS: ${CLOUDCOLOR_GERENTE_APELLIDOS:?Define CLOUDCOLOR_GERENTE_APELLIDOS in .env}
+      CLOUDCOLOR_GERENTE_USUARIO: ${CLOUDCOLOR_GERENTE_USUARIO:?Define CLOUDCOLOR_GERENTE_USUARIO in .env}
+      CLOUDCOLOR_GERENTE_PASSWORD: ${CLOUDCOLOR_GERENTE_PASSWORD:?Define CLOUDCOLOR_GERENTE_PASSWORD in .env}
+      CLOUDCOLOR_DIGITADOR_CODIGO: ${CLOUDCOLOR_DIGITADOR_CODIGO:?Define CLOUDCOLOR_DIGITADOR_CODIGO in .env}
+      CLOUDCOLOR_DIGITADOR_NOMBRES: ${CLOUDCOLOR_DIGITADOR_NOMBRES:?Define CLOUDCOLOR_DIGITADOR_NOMBRES in .env}
+      CLOUDCOLOR_DIGITADOR_APELLIDOS: ${CLOUDCOLOR_DIGITADOR_APELLIDOS:?Define CLOUDCOLOR_DIGITADOR_APELLIDOS in .env}
+      CLOUDCOLOR_DIGITADOR_USUARIO: ${CLOUDCOLOR_DIGITADOR_USUARIO:?Define CLOUDCOLOR_DIGITADOR_USUARIO in .env}
+      CLOUDCOLOR_DIGITADOR_PASSWORD: ${CLOUDCOLOR_DIGITADOR_PASSWORD:?Define CLOUDCOLOR_DIGITADOR_PASSWORD in .env}
+      CLOUDCOLOR_CAJERO_CODIGO: ${CLOUDCOLOR_CAJERO_CODIGO:?Define CLOUDCOLOR_CAJERO_CODIGO in .env}
+      CLOUDCOLOR_CAJERO_NOMBRES: ${CLOUDCOLOR_CAJERO_NOMBRES:?Define CLOUDCOLOR_CAJERO_NOMBRES in .env}
+      CLOUDCOLOR_CAJERO_APELLIDOS: ${CLOUDCOLOR_CAJERO_APELLIDOS:?Define CLOUDCOLOR_CAJERO_APELLIDOS in .env}
+      CLOUDCOLOR_CAJERO_USUARIO: ${CLOUDCOLOR_CAJERO_USUARIO:?Define CLOUDCOLOR_CAJERO_USUARIO in .env}
+      CLOUDCOLOR_CAJERO_PASSWORD: ${CLOUDCOLOR_CAJERO_PASSWORD:?Define CLOUDCOLOR_CAJERO_PASSWORD in .env}
+    depends_on:
+      sql-init:
+        condition: service_completed_successfully
+    networks: [cloudcolor]
+    restart: "no"
+
+  web:
+    build:
+      context: .
+      target: runtime
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__CloudColor: "Server=sqlserver,1433;Database=CloudColorDB;User ID=sa;Password=${MSSQL_SA_PASSWORD:?Define MSSQL_SA_PASSWORD in .env};Encrypt=True;TrustServerCertificate=True;Application Name=CloudColor.Web"
+    ports:
+      - "127.0.0.1:${CLOUDCOLOR_WEB_PORT:-8080}:8080"
+    depends_on:
+      gerente-init:
+        condition: service_completed_successfully
+    networks: [cloudcolor]
+
+networks:
+  cloudcolor:
+
+volumes:
+  sqlserver_data:

@@ -1,6 +1,6 @@
 @model DashboardVm
 @{ViewData["Title"]="Inicio";var ingreso=User.IsInRole("Gerente")||User.IsInRole("Digitador");}
-<div class="page-heading"><div><span class="eyebrow">PANORAMA GENERAL</span><h1>Todo en perspectiva.</h1><p>Bienvenido, @User.Identity?.Name. Así está tu operación hoy.</p></div><span class="date-label">@DateTime.Today.ToString("d 'de' MMMM 'de' yyyy")</span></div>
+<div class="page-heading"><div><span class="eyebrow">PANORAMA GENERAL</span><h1>CloudColor en Docker.</h1><p>Bienvenido, @User.Identity?.Name. Así está tu operación hoy.</p></div><span class="date-label">@DateTime.Today.ToString("d 'de' MMMM 'de' yyyy")</span></div>
 <section class="welcome-banner"><div><span class="eyebrow">CLOUDCOLOR</span><h2>Menos pasos.<br/>Más claridad.</h2><p>Del primer ingreso a la última venta,<br/>cada movimiento conectado.</p><a class="button dark" href="@(User.IsInRole("Cajero")?"/Cobros":"/Inventario")">@(User.IsInRole("Cajero")?"Ir a cobros":"Explorar inventario") <span class="hero-arrow" aria-hidden="true">→</span></a></div><div class="color-composition" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div></section>
 <section class="quick-actions" aria-labelledby="acciones-title"><div class="section-heading"><div><h2 id="acciones-title">¿Qué necesitas hacer?</h2><p class="muted">Accesos directos a las tareas más frecuentes.</p></div></div><div class="quick-action-grid">
 @if(ingreso){
