@@ -17,6 +17,8 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'El rollout no termino correctamente.' }
         [void](Assert-WebAvailable)
     }
+    # Observar tambien la retirada de los endpoints inmediatamente posterior al rollout.
+    Start-Sleep -Seconds 6
 } catch { $operationFailed = $true; Write-Output 'El rollout no termino correctamente.' }
 finally {
     $clock.Stop()

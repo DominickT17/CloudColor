@@ -125,7 +125,7 @@ kubectl --context cloudcolor -n cloudcolor logs deployment/cloudcolor-web --tail
 .\scripts\k8s\probar-rollout-sin-caida.ps1 -Reiniciar
 ```
 
-El workflow construye y publica las imágenes en GitHub y después ejecuta CD únicamente en un runner local `cloudcolor-k8s` para pushes de `redes/proyecto-final`. El runner debe estar en línea, con acceso al perfil/contexto `cloudcolor`, a kubectl y Minikube. El runner instalado como proceso de usuario deja de funcionar si termina la sesión; no se debe ejecutar código de PR no confiable en él. El despliegue usa `sha-<commit completo>`, verifica dos réplicas, endpoints y health por un port-forward temporal y no vuelve a ejecutar los Jobs de inicialización.
+El workflow construye y publica las imágenes en GitHub y después ejecuta CD únicamente en un runner local `cloudcolor-k8s` para pushes de `redes/proyecto-final`. El runner debe estar en línea, con acceso al perfil/contexto `cloudcolor`, a kubectl y Minikube. El runner instalado como proceso de usuario deja de funcionar si termina la sesión; no se debe ejecutar código de PR no confiable en él. El despliegue usa `sha-<commit completo>`, verifica dos réplicas, endpoints y health por un port-forward temporal y no vuelve a ejecutar los Jobs de inicialización. Antes de terminar cada Pod web se concede un plazo de drenaje de 10 segundos para que Ingress retire el endpoint; el periodo total de terminación es de 45 segundos. Esto reduce carreras, pero no garantiza disponibilidad absoluta.
 
 Para volver a la revisión anterior después de revisar compatibilidad y estado:
 
