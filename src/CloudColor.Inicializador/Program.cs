@@ -19,6 +19,26 @@ static Account ReadAccount(string prefix, string role) => new(
 static bool Same(string left, string right) =>
     string.Equals(left.Trim(), right.Trim(), StringComparison.OrdinalIgnoreCase);
 
+static void WaitForSchema(string connectionString)
+{
+    var builder = new SqlConnectionStringBuilder(connectionString) { ConnectTimeout = 3, ConnectRetryCount = 0 };
+    for (int attempt = 1; attempt <= 60; attempt++)
+    {
+        try
+        {
+            using var connection = new SqlConnection(builder.ConnectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandTimeout = 3;
+            command.CommandText = "SELECT CASE WHEN OBJECT_ID(N'dbo.AspNetDataProtectionKeys',N'U') IS NOT NULL AND EXISTS (SELECT 1 FROM sys.extended_properties WHERE class=0 AND name=N'CloudColorDockerSchemaVersion' AND CONVERT(nvarchar(10),value)=N'2') THEN 1 ELSE 0 END";
+            if (Convert.ToInt32(command.ExecuteScalar()) == 1) return;
+        }
+        catch (SqlException) { }
+        if (attempt < 60) Thread.Sleep(TimeSpan.FromSeconds(2));
+    }
+    throw new InitializationException("SQL Server o el esquema version 2 no estuvieron disponibles dentro del tiempo de espera.");
+}
+
 try
 {
     string connectionString = Required("ConnectionStrings__CloudColor");
@@ -32,6 +52,7 @@ try
         throw new InitializationException("Los nombres de usuario y codigos de empleado deben ser distintos entre las tres cuentas.");
 
     var results = new List<string>();
+    WaitForSchema(connectionString);
     // Una sola conexion de Aplicacion participa en la transaccion: si falla cualquier
     // cuenta, tambien se revierten los empleados y la configuracion inicial.
     using (var scope = new TransactionScope(TransactionScopeOption.Required,

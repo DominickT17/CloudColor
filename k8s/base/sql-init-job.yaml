@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sql-init
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      restartPolicy: OnFailure
+      automountServiceAccountToken: false
+      containers:
+        - name: sql-init
+          image: dominickt1703/cloudcolor-redesii:db-init-latest
+          imagePullPolicy: Always
+          env:
+            - name: SQLCMDPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cloudcolor-secrets
+                  key: MSSQL_SA_PASSWORD
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

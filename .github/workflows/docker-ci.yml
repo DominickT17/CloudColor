@@ -36,5 +36,31 @@ jobs:
           tags: |
             dominickt1703/cloudcolor-redesii:latest
             dominickt1703/cloudcolor-redesii:sha-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+      - name: Build and push SQL initializer
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./docker/sql/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            dominickt1703/cloudcolor-redesii:db-init-latest
+            dominickt1703/cloudcolor-redesii:db-init-sha-${{ github.sha }}
+          cache-from: type=gha,scope=db-init
+          cache-to: type=gha,mode=max,scope=db-init
+
+      - name: Build and push user initializer
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./docker/gerente/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            dominickt1703/cloudcolor-redesii:user-init-latest
+            dominickt1703/cloudcolor-redesii:user-init-sha-${{ github.sha }}
+          cache-from: type=gha,scope=user-init
+          cache-to: type=gha,mode=max,scope=user-init

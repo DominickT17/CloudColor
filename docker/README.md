@@ -28,7 +28,7 @@ El modo watch usa sondeo de archivos y volúmenes para `bin` y `obj`. Algunos ca
 
 ## Inicialización y persistencia
 
-El servicio `sql-init` espera a que SQL Server acepte conexiones y ejecuta los scripts `00–11` y `13–16`, en ese orden y con `sqlcmd -b`. El script `12` no se ejecuta. Solo cuando todos terminan, registra la propiedad extendida de base `CloudColorDockerSchemaVersion=1`. Si la base ya tiene esa marca, no se repiten los scripts. Si la base existe sin ella, el proceso se detiene: puede tratarse de una instalación anterior o incompleta y debe revisarse manualmente. La marca no verifica que no se hayan alterado objetos después de instalar.
+El servicio `sql-init` espera a que SQL Server acepte conexiones y ejecuta los scripts `00–11` y `13–16`, en ese orden y con `sqlcmd -b`, solo para una base nueva. El script `12` no se ejecuta. Una vez completada la instalación inicial se registra la versión `1`; después el script `17` migra de forma transaccional a `CloudColorDockerSchemaVersion=2`. Las bases existentes con versión `1` reciben solo esa migración; las de versión `2` se verifican sin recrear tablas. Si la marca falta o es desconocida, el proceso se detiene. La marca no comprueba que no se hayan alterado otros objetos.
 
 Una vez instalado el esquema, `gerente-init` usa `SeguridadServicio.Configurar` para crear el primer Gerente si todavía no hay usuarios. Después inicia sesión con el Gerente configurado y utiliza los servicios normales de empleados y usuarios para preparar Digitador y Cajero, con sus roles correspondientes. Todas las altas de esta ejecución se hacen en una transacción. Los nombres de usuario y códigos de empleado deben ser distintos.
 
@@ -36,4 +36,4 @@ Una cuenta existente con el rol, empleado y estado esperados se conserva sin mod
 
 El volumen nombrado `sqlserver_data` conserva la base y la contraseña de SQL Server entre recreaciones. Cambiar `MSSQL_SA_PASSWORD` en `.env` no cambia por sí solo la contraseña almacenada en un volumen existente. No elimine el volumen para resolver errores sin antes evaluar sus datos; la persistencia no reemplaza las copias de seguridad.
 
-El orden de Compose impide que la web arranque si falla la instalación o el Gerente inicial. La configuración no implementa todavía HTTPS, almacenamiento persistente de claves de sesión, Kubernetes ni despliegue público. Las pruebas de conectividad, inicialización y persistencia deben hacerse al iniciar los contenedores en una fase posterior.
+El orden de Compose impide que la web arranque si falla la instalación o el inicializador de usuarios. Compose local mantiene la configuración predeterminada de claves de sesión; Kubernetes activa explícitamente el repositorio SQL compartido descrito en [la guía de Kubernetes](../k8s/README.md). Las pruebas de conectividad, inicialización y persistencia deben hacerse al iniciar los contenedores en una fase posterior.
