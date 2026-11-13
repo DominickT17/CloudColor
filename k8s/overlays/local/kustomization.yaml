@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - ../../base
 patches:
+  - path: ingress-tls-patch.yaml
   - target:
       kind: Deployment
       name: cloudcolor-web

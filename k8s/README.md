@@ -34,10 +34,11 @@ El pipeline construye las tres primeras imágenes después de un push a la rama 
 
 Se necesita Minikube ya instalado, Docker, `kubectl`, PowerShell y recursos suficientes: SQL Server solicita 2 GiB y puede usar hasta 4 GiB, además de la web y los componentes del clúster. El clúster debe contar con una StorageClass predeterminada que admita `ReadWriteOnce`. El StatefulSet conserva el PVC al recrear su Pod; un PVC no sustituye respaldos y su disponibilidad depende del proveedor de almacenamiento.
 
-Desde la raíz del clon, **en una fase posterior**, habilite el controlador Ingress y cree primero el namespace:
+Desde la raíz del clon, para una instalación nueva, habilite el controlador Ingress y cree primero el namespace. Compruebe previamente que el contexto activo sea `cloudcolor`:
 
 ```powershell
-minikube addons enable ingress
+kubectl config current-context
+minikube addons enable ingress -p cloudcolor
 kubectl apply -f k8s/base/namespace.yaml
 .\scripts\k8s\crear-secretos.ps1
 kubectl apply -k k8s/overlays/local
@@ -45,7 +46,15 @@ kubectl apply -k k8s/overlays/local
 
 El script de secretos interpreta el `.env` existente mediante Compose y envía el Secret `cloudcolor-secrets` a `kubectl` por entrada estándar; no escribe un archivo temporal con sus valores. No lo ejecute hasta comprobar el contexto de `kubectl` y los permisos. Las variables de SQL y de las tres cuentas deben existir en `.env`. El archivo sigue ignorado por Git. Los Secrets de Kubernetes están codificados, no cifrados por defecto: configure cifrado de etcd y RBAC en un clúster real. El usuario de SQL utilizado actualmente por los tres componentes es `sa`.
 
-El overlay local usa `Development` y HTTP para que las cookies funcionen con `cloudcolor.local` sin un certificado local. No lo use para producción. Configure manualmente la resolución de `cloudcolor.local` hacia la IP de Minikube, por ejemplo mediante el archivo hosts de Windows con permisos administrativos. No se modifica automáticamente. Si la instalación de Minikube requiere un túnel para acceder al Ingress, siga la documentación de su controlador.
+El overlay local usa `Development` y HTTPS local; no lo use para producción. Configure `cloudcolor.local` en hosts de Windows y mantenga activo `minikube tunnel -p cloudcolor` cuando el controlador lo requiera. Instale el binario oficial de mkcert, ejecute `mkcert -install` y apruebe la confianza de la CA en Windows cuando se solicite. La CA privada permanece fuera del repositorio; el certificado y la clave local se guardan en `.local-certs/`, ignorado por Git. El script también acepta el ejecutable oficial `.local-certs/mkcert.exe`:
+
+```powershell
+.\scripts\k8s\configurar-https-local.ps1
+```
+
+El script comprueba contexto y CA, crea o reutiliza el certificado, actualiza el Secret TLS y configura como proxy confiable únicamente la IP `/32` del controlador Ingress listo. Si el Pod Ingress cambia de IP, vuelva a ejecutarlo; también comprueba HTTPS y redirección. En este equipo `curl.exe` con Schannel necesita `--ssl-no-revoke` porque la CA local no publica una CRL: se siguen validando la cadena y el nombre, sin `-k`. El navegador o un cliente .NET con el almacén de confianza de Windows pueden validar el certificado normalmente.
+
+**No reaplique el overlay completo durante una actualización normal:** su Deployment base puede sustituir la imagen SHA y el proxy `/32` configurados en vivo. Para TLS use el script anterior y para actualizar la web use `desplegar-sha.ps1`; las migraciones y los Jobs se gestionan por separado.
 
 Compruebe que ambos Jobs terminen antes de usar la aplicación:
 
@@ -71,8 +80,8 @@ Los Jobs tienen nombres fijos y Kubernetes no vuelve a ejecutar automáticamente
 Con el Ingress local operativo:
 
 ```powershell
-curl.exe -i http://cloudcolor.local/health/live
-curl.exe -i http://cloudcolor.local/health/ready
+curl.exe --ssl-no-revoke -i https://cloudcolor.local/health/live
+curl.exe --ssl-no-revoke -i https://cloudcolor.local/health/ready
 kubectl -n cloudcolor get pods -l app=cloudcolor-web -o wide
 kubectl -n cloudcolor get endpointslices -l kubernetes.io/service-name=cloudcolor-web
 ```
@@ -103,4 +112,27 @@ kubectl -n cloudcolor rollout history deployment/cloudcolor-web
 kubectl -n cloudcolor get pods -l app=cloudcolor-web -o wide
 ```
 
-La StorageClass puede configurarse mediante un parche del StatefulSet antes de su creación. Cambiar una plantilla de PVC de un StatefulSet ya creado tiene restricciones de Kubernetes y no traslada datos automáticamente. Los manifiestos no instalan monitoreo; `/health/live` y `/health/ready` sirven como base para futuras comprobaciones.
+La StorageClass puede configurarse mediante un parche del StatefulSet antes de su creación. Cambiar una plantilla de PVC de un StatefulSet ya creado tiene restricciones de Kubernetes y no traslada datos automáticamente.
+
+## Monitoreo y despliegue continuo local
+
+El addon Metrics Server proporciona CPU y memoria con `kubectl top nodes` y `kubectl -n cloudcolor top pods`. Las probes startup, liveness y readiness, los endpoints de salud, eventos y logs complementan la observación; no se instaló Prometheus ni Grafana. Para el recorrido:
+
+```powershell
+.\scripts\k8s\monitorear-cloudcolor.ps1
+.\scripts\k8s\estado-final.ps1
+kubectl --context cloudcolor -n cloudcolor logs deployment/cloudcolor-web --tail=30
+.\scripts\k8s\probar-rollout-sin-caida.ps1 -Reiniciar
+```
+
+El workflow construye y publica las imágenes en GitHub y después ejecuta CD únicamente en un runner local `cloudcolor-k8s` para pushes de `redes/proyecto-final`. El runner debe estar en línea, con acceso al perfil/contexto `cloudcolor`, a kubectl y Minikube. El runner instalado como proceso de usuario deja de funcionar si termina la sesión; no se debe ejecutar código de PR no confiable en él. El despliegue usa `sha-<commit completo>`, verifica dos réplicas, endpoints y health por un port-forward temporal y no vuelve a ejecutar los Jobs de inicialización.
+
+Para volver a la revisión anterior después de revisar compatibilidad y estado:
+
+```powershell
+kubectl --context cloudcolor -n cloudcolor rollout history deployment/cloudcolor-web
+kubectl --context cloudcolor -n cloudcolor rollout undo deployment/cloudcolor-web
+kubectl --context cloudcolor -n cloudcolor rollout status deployment/cloudcolor-web --timeout=180s
+```
+
+Una migración de datos necesita planificación y ejecución separadas; un rollback de la web no revierte el esquema. SQL Server utiliza un único Pod: la recreación con el mismo PVC demuestra persistencia, no alta disponibilidad de SQL ni respaldo.
