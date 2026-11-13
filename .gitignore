@@ -4,3 +4,6 @@
 *.user
 *.suo
 **/conexion.local.json
+.env
+.env.*
+!.env.example

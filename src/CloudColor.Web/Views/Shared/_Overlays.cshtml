@@ -1,0 +1,9 @@
+<div class="toast-stack" aria-label="Notificaciones">
+@foreach(var item in new[]{("Exito","success"),("Info","info"),("Advertencia","warning"),("Error","error")}){
+ if(TempData[item.Item1] is string message){<div class="toast @item.Item2" role="@(item.Item2=="error"?"alert":"status")"><span>@message</span><button type="button" class="text-button" aria-label="Cerrar notificación">×</button></div>}
+}
+</div>
+<dialog id="confirmar" aria-labelledby="confirmar-titulo" aria-describedby="confirmar-texto">
+ <form method="dialog"><h2 id="confirmar-titulo">Confirmar operación</h2><p id="confirmar-texto"></p><div class="form-actions"><button class="button" value="cancelar" autofocus>Cancelar</button><button class="button primary" value="confirmar">Confirmar</button></div></form>
+</dialog>
+<dialog id="detalle-rapido" class="drawer" aria-labelledby="detalle-rapido-titulo"><div class="drawer-heading"><h2 id="detalle-rapido-titulo">Vista rápida</h2><button type="button" class="text-button" data-close-dialog>Cerrar ×</button></div><div class="quick-content"></div></dialog>

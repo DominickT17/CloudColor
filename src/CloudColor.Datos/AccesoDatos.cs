@@ -51,8 +51,8 @@ public sealed class AccesoDatos : IDisposable
     {
         2601 or 2627 => "Ya existe un registro con ese codigo, nombre de usuario o empleado asignado.",
         547 => "La operacion no respeta una relacion o restriccion de la base de datos.",
-        >= 52000 and <= 52099 => ex.Message,
+        >= 52000 and <= 52199 => ex.Message,
         _ => "No se pudo completar la operacion en SQL Server. Revise la conexion y los scripts instalados."
-    });
+    }, ex);
     public void Dispose() => conexion.Dispose();
 }

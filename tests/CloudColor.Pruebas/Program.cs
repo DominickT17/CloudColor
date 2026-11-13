@@ -5,7 +5,7 @@ using CloudColor.Negocio;
 using CloudColor.Presentacion;
 using Microsoft.Data.SqlClient;
 
-internal static class Program
+internal static partial class Program
 {
     private static int pruebas;
     private static string Capturas => Path.Combine(Path.GetTempPath(),"CloudColor-Pruebas");
@@ -71,12 +71,13 @@ internal static class Program
         return (int)cmd.ExecuteScalar()!;
     }
     [STAThread]
-    private static int Main()
+    private static int Main(string[] args)
     {
         Application.EnableVisualStyles();
         try
         {
-            string cadena=Conexion.LeerCadena();
+            using var entorno=new EntornoPruebas(Conexion.LeerCadena());
+            string cadena=entorno.Cadena;
             Comprobar(ConteoUsuarios(cadena)==0,"base sin usuarios para probar configuracion inicial; nunca elimina cuentas existentes");
             string clave=Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(24));
             string h1=PasswordHasher.Crear(clave),h2=PasswordHasher.Crear(clave);
@@ -223,6 +224,10 @@ internal static class Program
                 Rechaza(()=>app.Seguridad.Configurar("TEST-BOOT2","Prueba","Temporal","test.boot2",clave),"segundo bootstrap rechazado");
             }
             Comprobar(ConteoUsuarios(cadena)==0,"bootstrap duplicado no deja basura");
+            ProbarFase2(cadena,clave);
+            if(args.Contains("--concurrencia")) ProbarConcurrencia(cadena,clave);
+            entorno.VerificarOriginal();
+            entorno.Dispose();
             Console.WriteLine($"Resultado: {pruebas} comprobaciones correctas. Capturas: {Capturas}");
             return 0;
         }

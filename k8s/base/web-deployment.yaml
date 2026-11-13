@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudcolor-web
+spec:
+  replicas: 2
+  minReadySeconds: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: cloudcolor-web
+  template:
+    metadata:
+      labels:
+        app: cloudcolor-web
+    spec:
+      automountServiceAccountToken: false
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: cloudcolor-web
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: web
+          image: dominickt1703/cloudcolor-redesii:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Production
+            - name: ASPNETCORE_HTTP_PORTS
+              value: "8080"
+            - name: ASPNETCORE_HTTPS_PORT
+              value: "443"
+            - name: AllowedHosts
+              value: "*"
+            - name: TZ
+              value: America/Guatemala
+            - name: CloudColor__UseSqlDataProtection
+              value: "true"
+            - name: CloudColor__TrustedProxyNetworks
+              value: "127.0.0.1/32"
+            - name: ConnectionStrings__CloudColor
+              valueFrom:
+                secretKeyRef:
+                  name: cloudcolor-secrets
+                  key: ConnectionStrings__CloudColor
+          startupProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 2
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi

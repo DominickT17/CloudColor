@@ -10,6 +10,7 @@ public sealed class Aplicacion : IDisposable
     public ProductoServicio Productos { get; }
     public EmpleadoServicio Empleados { get; }
     public CatalogoServicio Catalogos { get; }
+    public Fase2Servicio Fase2 { get; }
     public Aplicacion(string? cadena = null)
     {
         db=new AccesoDatos(cadena ?? Conexion.LeerCadena());
@@ -19,6 +20,7 @@ public sealed class Aplicacion : IDisposable
         Productos=new ProductoServicio(new ProductoDatos(db),Seguridad);
         Empleados=new EmpleadoServicio(new EmpleadoDatos(db),Seguridad);
         Catalogos=new CatalogoServicio(new CatalogoDatos(db),Seguridad);
+        Fase2=new Fase2Servicio(new Fase2Datos(db),Seguridad);
     }
     public void Dispose() => db.Dispose();
 }

@@ -1,0 +1,8 @@
+@model RecepcionDetalleVm
+@{var r=Model.Lineas[0];ViewData["Title"]=r.NumeroRecepcion;}
+<nav class="breadcrumb" aria-label="Ruta"><a href="/Compras">Compras</a> / <a href="/Compras/Ver/@Model.Orden.OrdenCompraID">@Model.Orden.NumeroOrden</a> / Recepción</nav>
+<div class="page-heading"><div><span class="eyebrow">RECEPCIÓN REGISTRADA</span><h1>@r.NumeroRecepcion</h1><p>@Model.Orden.Proveedor · @r.FechaRecepcion.ToString("dd MMM yyyy · HH:mm")</p></div><a class="button" href="/Inventario">Consultar inventario →</a></div>
+<section class="card"><div class="section-heading padded"><h2>Mercadería recibida</h2><span class="badge green">REGISTRADA</span></div><div class="table-wrap"><table><thead><tr><th>Producto / SKU</th><th>Cantidad</th><th>Costo real</th><th>Ubicación</th><th>Lote proveedor</th><th>Ingreso</th></tr></thead><tbody>
+@foreach(var linea in Model.Lineas){var producto=Model.Detalle.FirstOrDefault(d=>d.DetalleOrdenCompraID==linea.DetalleOrdenCompraID);<tr><td>@producto?.Producto<small>@producto?.CodigoSKU</small></td><td>@linea.CantidadRecibida.ToString("0.####")</td><td>Q @linea.CostoUnitario.ToString("N2")</td><td>@linea.Ubicacion</td><td>@(linea.NumeroLoteProveedor??"Sin lote proveedor")</td><td>@linea.FechaIngreso.ToString("dd MMM yyyy")</td></tr>}
+</tbody></table></div></section>
+@if(!string.IsNullOrEmpty(r.Observaciones)){<p class="helper-note">@r.Observaciones</p>}

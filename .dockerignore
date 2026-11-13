@@ -1,0 +1,10 @@
+.git
+.vs
+**/bin
+**/obj
+**/conexion.local.json
+.env
+.env.*
+!.env.example
+tests
+docs

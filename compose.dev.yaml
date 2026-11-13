@@ -1,0 +1,22 @@
+services:
+  web:
+    build:
+      target: development
+    working_dir: /workspace
+    entrypoint: ["dotnet", "watch", "--project", "src/CloudColor.Web/CloudColor.Web.csproj", "run", "--no-launch-profile"]
+    environment:
+      DOTNET_USE_POLLING_FILE_WATCHER: "1"
+      DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER: "1"
+    volumes:
+      - ./src/CloudColor.Web:/workspace/src/CloudColor.Web
+      - ./src/CloudColor.Negocio:/workspace/src/CloudColor.Negocio
+      - ./src/CloudColor.Datos:/workspace/src/CloudColor.Datos
+      - ./src/CloudColor.Entidades:/workspace/src/CloudColor.Entidades
+      - /workspace/src/CloudColor.Web/bin
+      - /workspace/src/CloudColor.Web/obj
+      - /workspace/src/CloudColor.Negocio/bin
+      - /workspace/src/CloudColor.Negocio/obj
+      - /workspace/src/CloudColor.Datos/bin
+      - /workspace/src/CloudColor.Datos/obj
+      - /workspace/src/CloudColor.Entidades/bin
+      - /workspace/src/CloudColor.Entidades/obj

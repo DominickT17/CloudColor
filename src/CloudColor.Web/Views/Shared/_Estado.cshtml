@@ -1,0 +1,3 @@
+@model string
+@{string tono=Model switch {"ACTIVO" or "COMPLETA" or "PAGADA"=>"green","INACTIVO"=>"red","CONFIRMADA" or "FACTURADA"=>"blue",_=>"amber"};}
+<span class="badge @tono"><span aria-hidden="true">●</span> @Model.Replace('_',' ')</span>

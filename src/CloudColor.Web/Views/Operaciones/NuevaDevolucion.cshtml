@@ -1,0 +1,22 @@
+@model DevolucionNuevaVm
+@{ ViewData["Title"] = "Registrar devolución"; var facturaSeleccionada = Model.Facturas.SingleOrDefault(x => x.FacturaID == Model.Input.FacturaID); }
+<a class="breadcrumb" href="/Devoluciones">← Devoluciones</a>
+<div class="page-heading"><div><span class="eyebrow">DEVOLUCIÓN · GERENCIA</span><h1>Registrar una devolución.</h1><p>Selecciona una factura; las cantidades disponibles se calculan por lote vendido.</p></div></div>
+<section class="card spaced"><form method="get" action="/Devoluciones/Nueva" class="inline-form"><label class="field"><span>Factura</span><select name="factura" required><option value="">Selecciona número de factura</option>@foreach (var f in Model.Facturas) { <option value="@f.FacturaID" selected="@(f.FacturaID == Model.Input.FacturaID)">@f.NumeroFactura · @f.Cliente · Q @f.TotalActual.ToString("N2")</option> }</select></label><button class="button primary" type="submit">Cargar detalle</button></form></section>
+@if (facturaSeleccionada is not null)
+{
+<section class="card spaced"><div class="section-heading padded"><div><h2>@facturaSeleccionada.NumeroFactura · @facturaSeleccionada.Cliente</h2><p class="muted">Cada línea indica lo vendido, lo devuelto y el máximo aún permitido en ese lote.</p></div><span class="badge blue">@Model.Disponibles.Count lotes elegibles</span></div>
+@if (Model.Disponibles.Count == 0) { <div class="empty compact"><h3>No quedan unidades disponibles para devolver</h3><p>La factura ya fue devuelta completamente o no tiene asignaciones de lote.</p></div> }
+else
+{
+<form method="post" action="/Devoluciones/Nueva">
+@Html.AntiForgeryToken()<input type="hidden" name="Numero" value="@Model.Input.Numero"/><input type="hidden" name="FacturaID" value="@facturaSeleccionada.FacturaID"/>
+<label class="field"><span>Motivo</span><textarea name="Motivo" maxlength="300" required minlength="5" rows="3" placeholder="Describe el motivo de la devolución">@Model.Input.Motivo</textarea></label>
+@await Html.PartialAsync("_ValidationSummary")
+<div class="table-wrap spaced"><table><thead><tr><th>Devolver</th><th>Producto / SKU</th><th>Lote y ubicación original</th><th>Vendido</th><th>Devuelto</th><th>Máximo</th><th>Cantidad a devolver</th></tr></thead><tbody>
+@for (var i = 0; i < Model.Disponibles.Count; i++) { var l = Model.Disponibles[i]; var entrada = Model.Input.Lineas.FirstOrDefault(x => x.DetalleFacturaLoteID == l.DetalleFacturaLoteID); <tr><td><input type="checkbox" name="Lineas[@i].Incluir" value="true" checked="@(entrada?.Incluir == true)" aria-label="Seleccionar @l.CodigoSKU"/><input type="hidden" name="Lineas[@i].DetalleFacturaLoteID" value="@l.DetalleFacturaLoteID"/></td><td><strong>@l.Producto</strong><small>@l.CodigoSKU · @l.Presentacion · @(l.Color ?? "Sin color")</small></td><td>@(l.NumeroLoteProveedor ?? "Sin lote proveedor")<small>@l.Bodega · @l.Ubicacion · ingresó @l.FechaIngreso.ToString("dd MMM yyyy")</small></td><td>@l.CantidadSalida.ToString("0.####")</td><td>@l.CantidadDevuelta.ToString("0.####")</td><td><strong>@l.CantidadDisponible.ToString("0.####")</strong></td><td><input type="number" name="Lineas[@i].CantidadDevuelta" value="@(entrada?.CantidadDevuelta ?? 0)" min="0" max="@l.CantidadDisponible.ToString(System.Globalization.CultureInfo.InvariantCulture)" step="0.0001" inputmode="decimal" aria-label="Cantidad de @l.CodigoSKU"/></td></tr> }
+</tbody></table></div><div class="form-actions"><a class="button" href="/Devoluciones">Cancelar</a><button class="button primary" type="submit">Registrar devolución</button></div>
+</form>
+}
+</section>
+}

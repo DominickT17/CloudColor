@@ -365,6 +365,9 @@ BEGIN
         THROW 52003, 'El rol Gerente debe permanecer activo.', 1;
     UPDATE dbo.Rol SET Descripcion = @Descripcion, Activo = @Activo WHERE RolID = @RolID;
     IF @@ROWCOUNT = 0 THROW 52004, 'El rol no existe.', 1;
+    INSERT dbo.Bitacora(UsuarioID,FechaHora,Accion,TablaAfectada,RegistroID,DatosNuevos)
+    VALUES(@UsuarioActorID,GETDATE(),'MODIFICAR_ROL','Rol',CONVERT(varchar(100),@RolID),
+        CONCAT('Descripcion: ',ISNULL(@Descripcion,''),' | Activo: ',CONVERT(varchar(1),@Activo)));
 END;
 GO
 
@@ -422,7 +425,11 @@ BEGIN
     IF @PasswordHash IS NULL OR @PasswordHash NOT LIKE 'PBKDF2$SHA256$%$%$%' THROW 52002, 'Se requiere un hash PBKDF2 generado por la aplicacion.', 1;
     INSERT INTO dbo.Usuario (EmpleadoID, RolID, NombreUsuario, PasswordHash, Activo)
     VALUES (@EmpleadoID, @RolID, LTRIM(RTRIM(@NombreUsuario)), @PasswordHash, 1);
-    SELECT CONVERT(int, SCOPE_IDENTITY()) AS UsuarioID;
+    DECLARE @NuevoUsuarioID int=CONVERT(int,SCOPE_IDENTITY());
+    INSERT dbo.Bitacora(UsuarioID,FechaHora,Accion,TablaAfectada,RegistroID,DatosNuevos)
+    VALUES(@UsuarioActorID,GETDATE(),'CREAR_USUARIO','Usuario',CONVERT(varchar(100),@NuevoUsuarioID),
+        CONCAT('Nombre: ',LTRIM(RTRIM(@NombreUsuario)),' | EmpleadoID: ',@EmpleadoID,' | RolID: ',@RolID));
+    SELECT @NuevoUsuarioID AS UsuarioID;
 END;
 GO
 
@@ -440,9 +447,16 @@ BEGIN
     IF NULLIF(LTRIM(RTRIM(@NombreUsuario)), '') IS NULL THROW 52002, 'Nombre de usuario obligatorio.', 1;
     IF NOT EXISTS (SELECT 1 FROM dbo.Empleado WHERE EmpleadoID = @EmpleadoID AND Activo = 1) THROW 52002, 'Empleado invalido.', 1;
     IF @PasswordHash IS NOT NULL AND @PasswordHash NOT LIKE 'PBKDF2$SHA256$%$%$%' THROW 52002, 'Hash invalido.', 1;
+    DECLARE @NombreAnterior varchar(50),@EmpleadoAnterior int;
+    SELECT @NombreAnterior=NombreUsuario,@EmpleadoAnterior=EmpleadoID FROM dbo.Usuario WHERE UsuarioID=@UsuarioID;
     UPDATE dbo.Usuario SET EmpleadoID = @EmpleadoID, NombreUsuario = LTRIM(RTRIM(@NombreUsuario)),
         PasswordHash = ISNULL(@PasswordHash, PasswordHash) WHERE UsuarioID = @UsuarioID;
     IF @@ROWCOUNT = 0 THROW 52004, 'El usuario no existe.', 1;
+    INSERT dbo.Bitacora(UsuarioID,FechaHora,Accion,TablaAfectada,RegistroID,DatosAnteriores,DatosNuevos)
+    VALUES(@UsuarioActorID,GETDATE(),'MODIFICAR_USUARIO','Usuario',CONVERT(varchar(100),@UsuarioID),
+        CONCAT('Nombre: ',@NombreAnterior,' | EmpleadoID: ',@EmpleadoAnterior),
+        CONCAT('Nombre: ',LTRIM(RTRIM(@NombreUsuario)),' | EmpleadoID: ',@EmpleadoID,
+            CASE WHEN @PasswordHash IS NULL THEN '' ELSE ' | Contraseña actualizada (verificador omitido)' END));
 END;
 GO
 
@@ -456,8 +470,13 @@ BEGIN
     EXEC dbo.sp_AutorizarFase1 @UsuarioActorID, 1;
     IF @UsuarioID = @UsuarioActorID THROW 52003, 'No puede cambiar su propia cuenta desde administracion.', 1;
     IF NOT EXISTS (SELECT 1 FROM dbo.Rol WHERE RolID = @RolID AND Activo = 1 AND Nombre IN ('Gerente','Digitador','Cajero')) THROW 52002, 'Rol invalido.', 1;
+    DECLARE @RolAnterior varchar(50),@RolNuevo varchar(50);
+    SELECT @RolAnterior=r.Nombre FROM dbo.Usuario u JOIN dbo.Rol r ON r.RolID=u.RolID WHERE u.UsuarioID=@UsuarioID;
+    SELECT @RolNuevo=Nombre FROM dbo.Rol WHERE RolID=@RolID;
     UPDATE dbo.Usuario SET RolID = @RolID WHERE UsuarioID = @UsuarioID;
     IF @@ROWCOUNT = 0 THROW 52004, 'El usuario no existe.', 1;
+    INSERT dbo.Bitacora(UsuarioID,FechaHora,Accion,TablaAfectada,RegistroID,DatosAnteriores,DatosNuevos)
+    VALUES(@UsuarioActorID,GETDATE(),'CAMBIAR_ROL_USUARIO','Usuario',CONVERT(varchar(100),@UsuarioID),@RolAnterior,@RolNuevo);
 END;
 GO
 
@@ -472,8 +491,14 @@ BEGIN
     IF @UsuarioID = @UsuarioActorID THROW 52003, 'No puede cambiar su propia cuenta desde administracion.', 1;
     IF @Activo = 1 AND NOT EXISTS (SELECT 1 FROM dbo.Usuario u JOIN dbo.Empleado e ON e.EmpleadoID = u.EmpleadoID JOIN dbo.Rol r ON r.RolID = u.RolID WHERE u.UsuarioID = @UsuarioID AND e.Activo = 1 AND r.Activo = 1)
         THROW 52002, 'El empleado y el rol deben estar activos.', 1;
+    DECLARE @ActivoAnterior bit;
+    SELECT @ActivoAnterior=Activo FROM dbo.Usuario WHERE UsuarioID=@UsuarioID;
     UPDATE dbo.Usuario SET Activo = @Activo WHERE UsuarioID = @UsuarioID;
     IF @@ROWCOUNT = 0 THROW 52004, 'El usuario no existe.', 1;
+    INSERT dbo.Bitacora(UsuarioID,FechaHora,Accion,TablaAfectada,RegistroID,DatosAnteriores,DatosNuevos)
+    VALUES(@UsuarioActorID,GETDATE(),'CAMBIAR_ESTADO_USUARIO','Usuario',CONVERT(varchar(100),@UsuarioID),
+        CASE WHEN @ActivoAnterior=1 THEN 'Activo' ELSE 'Inactivo' END,
+        CASE WHEN @Activo=1 THEN 'Activo' ELSE 'Inactivo' END);
 END;
 GO
 

@@ -6,9 +6,9 @@ public sealed class MenuPrincipalForm : Form
     public MenuPrincipalForm(Aplicacion app)
     {
         var sesion=app.Seguridad.Actual();
-        Text="CloudColor · Fase I"; Name="MenuPrincipal"; Size=new Size(620,440); MinimumSize=new Size(580,420);
+        Text="CloudColor · Fases I y II"; Name="MenuPrincipal"; Size=new Size(620,440); MinimumSize=new Size(580,420);
         StartPosition=FormStartPosition.CenterScreen; Font=new Font("Segoe UI",11);
-        var panel=new FlowLayoutPanel { Dock=DockStyle.Fill,FlowDirection=FlowDirection.TopDown,Padding=new Padding(24),WrapContents=false };
+        var panel=new FlowLayoutPanel { Dock=DockStyle.Fill,FlowDirection=FlowDirection.TopDown,Padding=new Padding(24),WrapContents=false,AutoScroll=true };
         Controls.Add(panel);
         panel.Controls.Add(new Label { Text=$"{sesion.NombreUsuario} · {sesion.Rol}",AutoSize=true,Margin=new Padding(8) });
         void Boton(string texto,bool habilitado,Func<Form> crear,bool gerente=false)
@@ -29,9 +29,20 @@ public sealed class MenuPrincipalForm : Form
         Boton("Cliente",mantenimiento,()=>new ClienteForm(app)); Boton("Proveedor",mantenimiento,()=>new ProveedorForm(app));
         Boton("Producto",mantenimiento,()=>new ProductoForm(app)); Boton("Empleado",mantenimiento,()=>new EmpleadoForm(app));
         Boton("Usuarios",sesion.Rol=="Gerente",()=>new UsuariosForm(app),true); Boton("Roles",sesion.Rol=="Gerente",()=>new RolesForm(app),true);
-        if(sesion.Rol=="Cajero") panel.Controls.Add(new Label { Text="Cobros disponibles en una fase posterior.",AutoSize=true });
+        Boton("Variantes",mantenimiento,()=>new ProductoVarianteForm(app));
+        Boton("Bodegas",mantenimiento,()=>new BodegaForm(app)); Boton("Ubicaciones",mantenimiento,()=>new UbicacionForm(app));
+        Boton("Proveedor / variante",mantenimiento,()=>new ProveedorProductoForm(app));
+        Boton("Cotizaciones",mantenimiento,()=>new CotizacionForm(app)); Boton("Compras y recepciones",mantenimiento,()=>new OrdenCompraForm(app));
+        Boton("Inventario",mantenimiento,()=>new InventarioForm(app));
+        var facturas=new Button { Name="Facturas",Text="Facturas / cobros",Width=260,Height=34 };
+        facturas.Click+=(_,_)=>
+        {
+            try { app.Fase2.ExigirConsultaFactura(); using var f=new FacturacionForm(app); f.ShowDialog(this); }
+            catch(InvalidOperationException ex) { MessageBox.Show(this,ex.Message,"Acceso",MessageBoxButtons.OK,MessageBoxIcon.Information); }
+        };
+        panel.Controls.Add(facturas);
         var salir=new Button { Text="Cerrar sesión",AutoSize=true };
         salir.Click+=(_,_)=> { app.Seguridad.CerrarSesion(); VolverLogin=true; Close(); }; panel.Controls.Add(salir);
-        ClientSize=new Size(600,480);
+        ClientSize=new Size(600,760);
     }
 }

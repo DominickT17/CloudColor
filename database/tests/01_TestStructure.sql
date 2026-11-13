@@ -48,7 +48,8 @@ BEGIN TRY
     IF OBJECT_ID('dbo.AnulacionFactura', 'U') IS NULL THROW 51001, 'Falta la tabla AnulacionFactura.', 1;
     IF (SELECT COUNT(*) FROM sys.tables WHERE is_ms_shipped = 0) <> 31
         THROW 51002, 'Se esperaban exactamente 31 tablas.', 1;
-    IF (SELECT COUNT(*) FROM sys.key_constraints WHERE type = 'PK') <> 31
+    -- Los tipos tabla de Fase II tambien tienen PK; contar solo las tablas del modelo.
+    IF (SELECT COUNT(*) FROM sys.key_constraints k JOIN sys.tables t ON t.object_id = k.parent_object_id WHERE k.type = 'PK') <> 31
         THROW 51003, 'Se esperaban 31 PK.', 1;
     IF (SELECT COUNT(*) FROM sys.foreign_keys) <> 43
         THROW 51004, 'Se esperaban 43 FK.', 1;
