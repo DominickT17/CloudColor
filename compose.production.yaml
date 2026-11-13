@@ -1,0 +1,92 @@
+x-logging: &rotated-logs
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Configure MSSQL_SA_PASSWORD}
+      TZ: America/Guatemala
+    volumes:
+      - cloudcolor_sql_data:/var/opt/mssql
+    networks: [cloudcolor]
+    healthcheck:
+      test: ["CMD-SHELL", "SQLCMDPASSWORD=\"$$MSSQL_SA_PASSWORD\" /opt/mssql-tools18/bin/sqlcmd -S localhost,1433 -U sa -C -b -l 3 -Q 'SELECT 1' >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    logging: *rotated-logs
+
+  sql-init:
+    image: dominickt1703/cloudcolor-redesii:${DB_INIT_IMAGE_TAG:-db-init-latest}
+    pull_policy: always
+    restart: "no"
+    environment:
+      SQLCMDPASSWORD: ${MSSQL_SA_PASSWORD:?Configure MSSQL_SA_PASSWORD}
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks: [cloudcolor]
+    logging: *rotated-logs
+
+  user-init:
+    image: dominickt1703/cloudcolor-redesii:${USER_INIT_IMAGE_TAG:-user-init-latest}
+    pull_policy: always
+    restart: "no"
+    environment:
+      ConnectionStrings__CloudColor: "Server=sqlserver,1433;Database=CloudColorDB;User ID=sa;Password=${MSSQL_SA_PASSWORD:?Configure MSSQL_SA_PASSWORD};Encrypt=True;TrustServerCertificate=True;Application Name=CloudColor.Init"
+      CLOUDCOLOR_GERENTE_CODIGO: ${CLOUDCOLOR_GERENTE_CODIGO:?Configure CLOUDCOLOR_GERENTE_CODIGO}
+      CLOUDCOLOR_GERENTE_NOMBRES: ${CLOUDCOLOR_GERENTE_NOMBRES:?Configure CLOUDCOLOR_GERENTE_NOMBRES}
+      CLOUDCOLOR_GERENTE_APELLIDOS: ${CLOUDCOLOR_GERENTE_APELLIDOS:?Configure CLOUDCOLOR_GERENTE_APELLIDOS}
+      CLOUDCOLOR_GERENTE_USUARIO: ${CLOUDCOLOR_GERENTE_USUARIO:?Configure CLOUDCOLOR_GERENTE_USUARIO}
+      CLOUDCOLOR_GERENTE_PASSWORD: ${CLOUDCOLOR_GERENTE_PASSWORD:?Configure CLOUDCOLOR_GERENTE_PASSWORD}
+      CLOUDCOLOR_DIGITADOR_CODIGO: ${CLOUDCOLOR_DIGITADOR_CODIGO:?Configure CLOUDCOLOR_DIGITADOR_CODIGO}
+      CLOUDCOLOR_DIGITADOR_NOMBRES: ${CLOUDCOLOR_DIGITADOR_NOMBRES:?Configure CLOUDCOLOR_DIGITADOR_NOMBRES}
+      CLOUDCOLOR_DIGITADOR_APELLIDOS: ${CLOUDCOLOR_DIGITADOR_APELLIDOS:?Configure CLOUDCOLOR_DIGITADOR_APELLIDOS}
+      CLOUDCOLOR_DIGITADOR_USUARIO: ${CLOUDCOLOR_DIGITADOR_USUARIO:?Configure CLOUDCOLOR_DIGITADOR_USUARIO}
+      CLOUDCOLOR_DIGITADOR_PASSWORD: ${CLOUDCOLOR_DIGITADOR_PASSWORD:?Configure CLOUDCOLOR_DIGITADOR_PASSWORD}
+      CLOUDCOLOR_CAJERO_CODIGO: ${CLOUDCOLOR_CAJERO_CODIGO:?Configure CLOUDCOLOR_CAJERO_CODIGO}
+      CLOUDCOLOR_CAJERO_NOMBRES: ${CLOUDCOLOR_CAJERO_NOMBRES:?Configure CLOUDCOLOR_CAJERO_NOMBRES}
+      CLOUDCOLOR_CAJERO_APELLIDOS: ${CLOUDCOLOR_CAJERO_APELLIDOS:?Configure CLOUDCOLOR_CAJERO_APELLIDOS}
+      CLOUDCOLOR_CAJERO_USUARIO: ${CLOUDCOLOR_CAJERO_USUARIO:?Configure CLOUDCOLOR_CAJERO_USUARIO}
+      CLOUDCOLOR_CAJERO_PASSWORD: ${CLOUDCOLOR_CAJERO_PASSWORD:?Configure CLOUDCOLOR_CAJERO_PASSWORD}
+    depends_on:
+      sql-init:
+        condition: service_completed_successfully
+    networks: [cloudcolor]
+    logging: *rotated-logs
+
+  web:
+    image: dominickt1703/cloudcolor-redesii:${CLOUDCOLOR_IMAGE_TAG:-latest}
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ASPNETCORE_HTTPS_PORT: "443"
+      AllowedHosts: ${DOMINIO_CLOUDCOLOR:?Configure DOMINIO_CLOUDCOLOR}
+      TZ: America/Guatemala
+      CloudColor__UseSqlDataProtection: "true"
+      CloudColor__TrustedProxyNetworks: ${DOKPLOY_PROXY_CIDR:?Configure DOKPLOY_PROXY_CIDR}
+      ConnectionStrings__CloudColor: "Server=sqlserver,1433;Database=CloudColorDB;User ID=sa;Password=${MSSQL_SA_PASSWORD:?Configure MSSQL_SA_PASSWORD};Encrypt=True;TrustServerCertificate=True;Application Name=CloudColor.Web"
+    expose:
+      - "8080"
+    depends_on:
+      user-init:
+        condition: service_completed_successfully
+    networks: [cloudcolor]
+    logging: *rotated-logs
+
+networks:
+  cloudcolor:
+
+volumes:
+  cloudcolor_sql_data:
+    name: cloudcolor_sql_data
